@@ -1,139 +1,166 @@
-/**
- * UI Extension Logic
- * Initializes panels, tables, and drag behavior.
- */
-
-function initUIExtensions(featureNames, S_map) {
-  
-  addMinimizeBehavior("config-panel");
-  addMinimizeBehavior("legend-panel");
+function initUIExtensions() {
+  // 1. Initialize Minimize Behavior
+  addMinimizeBehavior("constructor-panel");
+  addMinimizeBehavior("args-panel");
   addMinimizeBehavior("viz-panel");
 
-  // 1. Populate Feature List (Checkboxes)
-  const featureList = document.getElementById("ui-feature-list");
-  if (featureList) {
-    featureNames.forEach((name) => {
+  // Set initial positions below header (assuming header is ~60px)
+  const panels = ["constructor-panel", "args-panel", "viz-panel"];
+  const startOffsets = [20, 340, 610];
+  panels.forEach((id, i) => {
+    const p = document.getElementById(id);
+    if(p) {
+        p.style.top = "80px"; 
+        p.style.left = startOffsets[i] + "px";
+    }
+  });
+
+  // 2. Setup Feature Adding Logic
+  const addFeatureBtn = document.getElementById("add-feature-btn");
+  if (addFeatureBtn) {
+    addFeatureBtn.onclick = () => {
+      const list = document.getElementById("ui-feature-list");
+      const index = list.children.length;
+      const bitValue = 1 << index;
+
       const div = document.createElement("div");
-      div.className = "feature-item";
+      div.className = "feature-row";
+      div.style = "display: flex; gap: 5px; margin-bottom: 8px;";
       div.innerHTML = `
-        <input type="checkbox" checked id="feat-${name}"> 
-        <label for="feat-${name}" style="margin-left:8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</label>
+        <input type="text" placeholder="Feature Name" class="feat-name" style="flex: 1;">
+        <input type="text" placeholder="Key" class="feat-key" style="width: 40px; text-align: center;">
+        <span style="font-size: 10px; color: #666; width: 50px;">Mask: ${bitValue}</span>
+        <button onclick="this.parentElement.remove()" style="cursor:pointer; border:none; background:none;">×</button>
       `;
-      featureList.appendChild(div);
-    });
+      list.appendChild(div);
+    };
   }
 
-  // 2. Populate S_map Table (Replacing the list)
-  const legendPanel = document.getElementById("legend-panel");
-  if (legendPanel) {
-    // FIX: Added table-layout: fixed and width: 100% to ensure it stays within bounds
-    legendPanel.innerHTML = `
-      <div class="handle">::: STATE CONFIGURATION</div>
-      <strong style="display: block; margin-bottom: 5px;">Active S_map Keys</strong>
-      <div class="filter-group">
-        <span class="filter-chip">All</span>
-        <span class="filter-chip">Pricing</span>
-        <span class="filter-chip">Nutrition</span>
-      </div>
-      <div style="width: 100%; overflow-x: hidden;">
-        <table class="data-table" style="table-layout: fixed; width: 100%;">
-          <thead>
-            <tr>
-              <th style="width: 60px;">Key</th>
-              <th>Logic Expression</th>
-            </tr>
-          </thead>
-          <tbody id="ui-smap-tbody"></tbody>
-        </table>
+  // 3. Setup Generate Button Logic
+  const generateBtn = document.getElementById("generate-fsm-btn");
+  if (generateBtn) {
+    generateBtn.onclick = () => {
+      const food = document.getElementById("food-input").value;
+      const rows = document.querySelectorAll(".feature-row");
+      const featureMap = {};
+      const S_map = {};
+
+      rows.forEach((row, i) => {
+        const name = row.querySelector(".feat-name").value;
+        const key = row.querySelector(".feat-key").value;
+        const bit = 1 << i;
+        if (name && key) {
+          featureMap[bit] = name;
+          S_map[key] = bit;
+        }
+      });
+
+      if (food && Object.keys(S_map).length > 0) {
+        window.dfa = new MonotonicDFA(food, S_map);
+        window.viz = new MonotonicVisualizer('fsmCanvas', window.dfa, featureMap);
+        updateArgsDisplay(food, featureMap);
+      }
+    };
+  }
+
+  // 4. Draggable Setup
+  makeDraggable(document.getElementById("viz-panel"));
+  makeDraggable(document.getElementById("constructor-panel"));
+  makeDraggable(document.getElementById("args-panel"));
+
+  // 5. RESIZER IMPLEMENTATION (The Missing Piece)
+  const resizer = document.getElementById('viz-resizer');
+  const vPanel = document.getElementById('viz-panel');
+  if (resizer && vPanel) {
+    resizer.onmousedown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startWidth = vPanel.offsetWidth;
+      const startHeight = vPanel.offsetHeight;
+      const startX = e.clientX;
+      const startY = e.clientY;
+
+      const doResize = (moveEvent) => {
+        const newWidth = startWidth + (moveEvent.clientX - startX);
+        const newHeight = startHeight + (moveEvent.clientY - startY);
+        if (newWidth > 200) vPanel.style.width = newWidth + 'px';
+        if (newHeight > 150) vPanel.style.height = newHeight + 'px';
+        if (window.viz) window.viz.resize();
+      };
+
+      const stopResize = () => {
+        window.removeEventListener('mousemove', doResize);
+        window.removeEventListener('mouseup', stopResize);
+      };
+
+      window.addEventListener('mousemove', doResize);
+      window.addEventListener('mouseup', stopResize);
+    };
+  }
+
+  // --- INTERNAL HELPERS ---
+  function updateArgsDisplay(food, features) {
+    const display = document.getElementById("active-args-display");
+    if (!display) return;
+    display.innerHTML = `
+      <div style="font-size: 11px;">
+        <strong>Target Food:</strong> <code style="background:#eee; padding:2px 4px;">${food}</code>
+        <hr style="margin: 8px 0; border:0; border-top:1px solid #ddd;">
+        <strong>Feature Bitmasking:</strong>
+        <ul style="padding-left: 15px; margin: 5px 0;">
+          ${Object.entries(features).map(([bit, name]) => `<li>${bit}: ${name}</li>`).join('')}
+        </ul>
       </div>
     `;
-
-    const tbody = document.getElementById("ui-smap-tbody");
-    Object.keys(S_map).forEach((key) => {
-      const row = document.createElement("tr");
-      // FIX: Added box-sizing and width 100% to input to prevent overflow
-      row.innerHTML = `
-        <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>${key}</strong></td>
-        <td>
-            <input type="text" 
-                   id='${key}-${S_map[key]}' 
-                   value="Mask: ${S_map[key]}" 
-                   readonly 
-                   style="width: 100%; box-sizing: border-box; display: block;">
-        </td>
-      `;
-      tbody.appendChild(row);
-    });
   }
 
-  // 3. Draggable Implementation
-  function makeDraggable(el) {
-    if (!el) return;
-    let pos1 = 0,
-      pos2 = 0,
-      pos3 = 0,
-      pos4 = 0;
-    const handle = el.querySelector(".handle");
+function makeDraggable(el) {
+  if (!el) return;
+  const handle = el.querySelector(".handle");
+  if (!handle) return;
 
-    if (handle) {
-      handle.onmousedown = (e) => {
-        if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON")
-          return;
-        e.preventDefault();
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        document.onmouseup = () => {
-          document.onmouseup = null;
-          document.onmousemove = null;
-        };
-        document.onmousemove = (e) => {
-          pos1 = pos3 - e.clientX;
-          pos2 = pos4 - e.clientY;
-          pos3 = e.clientX;
-          pos4 = e.clientY;
-          el.style.top = el.offsetTop - pos2 + "px";
-          el.style.left = el.offsetLeft - pos1 + "px";
-        };
-      };
-    }
-  }
-  const resizer = document.getElementById('viz-resizer');
-  const panel = document.getElementById('viz-panel');
+  handle.onmousedown = (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
+    e.preventDefault();
+    let pos3 = e.clientX, pos4 = e.clientY;
 
-  resizer.onmousedown = (e) => {
-      e.preventDefault();
-      window.onmousemove = (e) => {
-          panel.style.width = (e.clientX - panel.offsetLeft) + "px";
-          panel.style.height = (e.clientY - panel.offsetTop) + "px";
-      };
-      window.onmouseup = () => { window.onmousemove = null; };
+    document.onmousemove = (e) => {
+      let pos1 = pos3 - e.clientX, pos2 = pos4 - e.clientY;
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+
+      // --- THE GUARD LOGIC ---
+      const headerHeight = 60; // Adjust this to your actual header height
+      let newTop = el.offsetTop - pos2;
+      let newLeft = el.offsetLeft - pos1;
+
+      // Prevent dragging above the header
+      if (newTop < headerHeight) newTop = headerHeight;
+      
+      // Optional: Prevent dragging off the left/right/bottom edges
+      if (newLeft < 0) newLeft = 0;
+      if (newLeft > window.innerWidth - el.offsetWidth) newLeft = window.innerWidth - el.offsetWidth;
+
+      el.style.top = newTop + "px";
+      el.style.left = newLeft + "px";
+    };
+
+    document.onmouseup = () => { document.onmousemove = null; };
   };
+}
 
   function addMinimizeBehavior(panelId) {
     const panel = document.getElementById(panelId);
     if (!panel) return;
-
     const handle = panel.querySelector(".handle");
-    if (!handle) return;
-
-    // Create the button
     const btn = document.createElement("button");
     btn.className = "min-btn";
-    btn.innerHTML = "−"; // Minus sign
-    btn.title = "Toggle Minimize";
-
+    btn.innerHTML = "−";
     btn.onclick = (e) => {
-      e.stopPropagation(); // Prevent drag from triggering
-      panel.classList.toggle("minimized");
-      
-      // Change icon based on state
-      btn.innerHTML = panel.classList.contains("minimized") ? "+" : "−";
+      e.stopPropagation();
+      const isMin = panel.classList.toggle("minimized");
+      btn.innerHTML = isMin ? "+" : "−";
     };
-
     handle.appendChild(btn);
   }
-
-  makeDraggable(panel);
-  makeDraggable(document.getElementById("config-panel"));
-  makeDraggable(document.getElementById("legend-panel"));
 }

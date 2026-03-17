@@ -9,25 +9,39 @@
   <body>
     <div id="header-toolbar">
       <div
-        style="
-          margin-left: 20px;
-          color: #6b7280;
-          font-size: 0.85rem;
-          font-weight: 500;
-        "
-      >
-        Retail Automata Dashboard
+        style="margin-left: 20px;color: #6b7280;font-size: 0.85rem;font-weight: 500;">Retail Automata Dashboard</div>
+    </div>
+
+    <div id="constructor-panel" class="panel">
+      <div class="handle">::: FSM CONSTRUCTOR</div>
+      <div class="panel-content">
+        <section>
+          <h4>1. Define Features (Binary)</h4>
+          <div id="feature-list">
+            </div>
+          <button onclick="addNewFeature()" class="ui-btn">+ Add Feature</button>
+        </section>
+        
+        <hr>
+
+        <section>
+          <h4>2. Define Food Sequence</h4>
+          <p class="hint">Use alphabet symbols (e.g., 'b', 'o', 'a', 'r')</p>
+          <input type="text" id="food-input" placeholder="e.g. boaa" class="full-width">
+        </section>
+
+        <button id="generate-fsm-btn" class="primary-btn">Generate Monotonic FSM</button>
       </div>
     </div>
 
-    <div id="config-panel" class="panel">
-      <div class="handle">::: DRAG TO MOVE</div>
-      <strong style="font-size: 0.9rem">State Variables</strong>
-      <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0" />
-      <div id="ui-feature-list"></div>
+    <div id="args-panel" class="panel">
+      <div class="handle">::: CURRENT ARGUMENTS</div>
+      <div class="panel-content">
+        <div id="active-args-display">
+          <p>No FSM generated yet.</p>
+        </div>
+      </div>
     </div>
-
-    <div id="legend-panel" class="panel"></div>
 
     <div id="viz-panel" class="panel" style="display: flex; flex-direction: column;">
       <div class="handle">::: FSM VISUALIZER</div>
@@ -43,6 +57,7 @@
     <script src="./fsm.js"></script>
     <script src="./viz.js"></script>
     <script src="./ui.js"></script>
+    
     <script>
       const featureNames = [
         "fiber",

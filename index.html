@@ -8,29 +8,23 @@
   </head>
   <body>
     <div id="header-toolbar">
-      <div
-        style="margin-left: 20px;color: #6b7280;font-size: 0.85rem;font-weight: 500;">Retail Automata Dashboard</div>
+      <div style="margin-left: 20px;color: #6b7280;font-size: 0.85rem;font-weight: 500;">Retail Automata Dashboard</div>
     </div>
 
     <div id="constructor-panel" class="panel">
-      <div class="handle">::: FSM CONSTRUCTOR</div>
+      <div class="handle">::: FSM BULK CONSTRUCTOR</div>
       <div class="panel-content">
-        <section>
-          <h4>1. Define Features (Binary)</h4>
-          <div id="feature-list">
-            </div>
-          <button onclick="addNewFeature()" class="ui-btn">+ Add Feature</button>
-        </section>
+        <label>1. Define Features (Comma Separated):</label>
+        <input type="text" id="feature-list-input" 
+              placeholder="fiber, carbohydrates, protein" 
+              style="width:100%; margin-bottom:15px;">
         
-        <hr>
-
-        <section>
-          <h4>2. Define Food Sequence</h4>
-          <p class="hint">Use alphabet symbols (e.g., 'b', 'o', 'a', 'r')</p>
-          <input type="text" id="food-input" placeholder="e.g. boaa" class="full-width">
-        </section>
-
-        <button id="generate-fsm-btn" class="primary-btn">Generate Monotonic FSM</button>
+        <label>2. Define Alphabet (Symbol: Feature1, Feature2...):</label>
+        <textarea id="alphabet-mapping-input" 
+                  placeholder="b: fiber, mt_100_Pesos&#10;o: carbohydrates, fiber" 
+                  style="width:100%; height:120px; font-family:monospace; font-size:11px;"></textarea>
+        
+        <button id="generate-fsm-btn" class="primary-btn" style="margin-top:10px; width:100%;">GENERATE FSM</button>
       </div>
     </div>
 
@@ -46,7 +40,7 @@
     <div id="viz-panel" class="panel" style="display: flex; flex-direction: column;">
       <div class="handle">::: FSM VISUALIZER</div>
       <div id="viz-container" style="flex-grow: 1; min-height: 0; background: white; position: relative;">
-        <button onclick="viz.toggleReachability()"style="cursor: pointer; padding: 6px 12px">
+        <button id="toggle-reach-btn" style="cursor: pointer; padding: 6px 12px; margin: 10px;">
           Toggle View Mode
         </button>
         <canvas id="fsmCanvas"></canvas>
@@ -57,30 +51,98 @@
     <script src="./fsm.js"></script>
     <script src="./viz.js"></script>
     <script src="./ui.js"></script>
-    
-    <script>
-      const featureNames = [
-        "fiber",
-        "carbohydrates",
-        "protien",
-        "mt_100_Pesos",
-        "mt_500_Pesos",
-        "mt_1000_Pesos",
-      ];
-      const FT = MonotonicDFA.encodeFEATURES(featureNames);
 
-      const S_map = {
-        b: FT["fiber"] | FT["mt_100_Pesos"],
-        o: FT["carbohydrates"] | FT["fiber"] | FT["mt_500_Pesos"],
-        a: FT["carbohydrates"] | FT["mt_100_Pesos"],
-        r: FT["protien"] | FT["mt_100_Pesos"],
+    <script>
+      /**
+       * The Main Build Function
+       * Scrapes the two bulk inputs and initializes the MonotonicDFA.
+       */
+      function buildFSM() {
+        // --- 1. HARVEST FEATURES ---
+        const featureRaw = document.getElementById("feature-list-input").value;
+        const featureNames = featureRaw.split(',').map(f => f.trim()).filter(f => f);
+
+        if (featureNames.length === 0) {
+          console.error("Build failed: No features found in the input box.");
+          return;
+        }
+
+        // Map names to bits (1, 2, 4, 8...)
+        const FT = MonotonicDFA.encodeFEATURES(featureNames);
+
+        // --- 2. HARVEST ALPHABET ---
+        const mappingRaw = document.getElementById("alphabet-mapping-input").value.trim();
+        const lines = mappingRaw.split('\n');
+        const S_map = {};
+
+        lines.forEach(line => {
+          if (!line.includes(':')) return;
+          const [symbolPart, featuresPart] = line.split(':');
+          const symbol = symbolPart.trim();
+          const assignedFeatures = featuresPart.split(',').map(f => f.trim());
+
+          let symbolMask = 0;
+          assignedFeatures.forEach(feat => {
+            if (FT[feat]) {
+              symbolMask |= FT[feat]; // Combine bits
+            } else if (feat !== "") {
+              console.warn(`Feature "${feat}" assigned to "${symbol}" does not exist in the Feature List.`);
+            }
+          });
+          S_map[symbol] = symbolMask;
+        });
+
+        // --- 3. CONSOLE LOGGING (The Verification) ---
+        console.log("%c--- FSM DATA CAPTURE ---", "color: #10b981; font-weight: bold; font-size: 1.2rem;");
+        console.log("Unique Features:", featureNames);
+        console.log("Feature Table (FT):", FT);
+        console.log("Alphabet Map (S_map):", S_map);
+        console.log("States Generated:", 1 << featureNames.length);
+
+        // --- 4. EXECUTION ---
+        try {
+          // Initialize machine
+          const mono = MonotonicDFA.WithFeatures(featureNames, S_map, 0);
+          
+          // Re-initialize the visualizer
+          window.viz = new MonotonicVisualizer("fsmCanvas", mono, FT);
+          
+          document.getElementById("active-args-display").innerHTML = `
+            <strong>FSM Build Success</strong><hr>
+            Features: ${featureNames.length}<br>
+            Total States: ${1 << featureNames.length}
+          `;
+        } catch (err) {
+          console.error("FSM Initialization Error:", err);
+        }
+      }
+
+      // --- INITIALIZATION ON PAGE LOAD ---
+      
+      // 1. Initialize Draggable panels
+      if (typeof initUIExtensions === "function") {
+        initUIExtensions(); 
+      }
+
+      // 2. Populate Default Bulk Data (The Schema)
+      document.getElementById("feature-list-input").value = 
+        "fiber, carbohydrates, protein, mt_100_Pesos, mt_500_Pesos";
+
+      document.getElementById("alphabet-mapping-input").value = 
+`b: fiber, mt_100_Pesos
+o: carbohydrates, fiber, mt_500_Pesos
+a: carbohydrates, mt_100_Pesos
+r: protein, mt_100_Pesos`;
+
+      // 3. Bind Buttons
+      document.getElementById("generate-fsm-btn").onclick = buildFSM;
+      
+      document.getElementById("toggle-reach-btn").onclick = () => {
+        if (window.viz) window.viz.toggleReachability();
       };
 
-      const mono = MonotonicDFA.WithFeatures(featureNames, S_map, 0);
-      const viz = new MonotonicVisualizer("fsmCanvas", mono, FT);
-
-      // Initialize UI
-      initUIExtensions(featureNames, S_map);
+      // 4. Run the first build automatically
+      window.onload = buildFSM;
     </script>
   </body>
 </html>

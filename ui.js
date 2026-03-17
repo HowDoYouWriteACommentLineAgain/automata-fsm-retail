@@ -1,31 +1,67 @@
 /**
- * UI Extension Logic for Retail FSM Demo
- * Handles panel population and draggability.
+ * UI Extension Logic
+ * Initializes panels, tables, and drag behavior.
  */
 
 function initUIExtensions(featureNames, S_map) {
-  // Populate Feature List UI
+  // 1. Populate Feature List (Checkboxes)
   const featureList = document.getElementById("ui-feature-list");
   if (featureList) {
     featureNames.forEach((name) => {
       const div = document.createElement("div");
       div.className = "feature-item";
-      div.innerHTML = `<input type="checkbox" checked disabled> <span>${name}</span>`;
+      div.innerHTML = `
+        <input type="checkbox" checked id="feat-${name}"> 
+        <label for="feat-${name}" style="margin-left:8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</label>
+      `;
       featureList.appendChild(div);
     });
   }
 
-  // Populate Legend UI
-  const smapList = document.getElementById("ui-smap-list");
-  if (smapList) {
+  // 2. Populate S_map Table (Replacing the list)
+  const legendPanel = document.getElementById("legend-panel");
+  if (legendPanel) {
+    // FIX: Added table-layout: fixed and width: 100% to ensure it stays within bounds
+    legendPanel.innerHTML = `
+      <div class="handle">::: STATE CONFIGURATION</div>
+      <strong style="display: block; margin-bottom: 5px;">Active S_map Keys</strong>
+      <div class="filter-group">
+        <span class="filter-chip">All</span>
+        <span class="filter-chip">Pricing</span>
+        <span class="filter-chip">Nutrition</span>
+      </div>
+      <div style="width: 100%; overflow-x: hidden;">
+        <table class="data-table" style="table-layout: fixed; width: 100%;">
+          <thead>
+            <tr>
+              <th style="width: 60px;">Key</th>
+              <th>Logic Expression</th>
+            </tr>
+          </thead>
+          <tbody id="ui-smap-tbody"></tbody>
+        </table>
+      </div>
+    `;
+
+    const tbody = document.getElementById("ui-smap-tbody");
     Object.keys(S_map).forEach((key) => {
-      const li = document.createElement("li");
-      li.innerText = `Key: ${key}`;
-      smapList.appendChild(li);
+      const row = document.createElement("tr");
+      // FIX: Added box-sizing and width 100% to input to prevent overflow
+      row.innerHTML = `
+        <td style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><strong>${key}</strong></td>
+        <td>
+            <input type="text" 
+                   id='${key}-${S_map[key]}' 
+                   value="Mask: ${S_map[key]}" 
+                   readonly 
+                   style="width: 100%; box-sizing: border-box; display: block;">
+        </td>
+      `;
+      tbody.appendChild(row);
     });
   }
 
-  // Simple Draggable implementation
+  // 3. Draggable Implementation
   function makeDraggable(el) {
     if (!el) return;
     let pos1 = 0,
@@ -36,6 +72,8 @@ function initUIExtensions(featureNames, S_map) {
 
     if (handle) {
       handle.onmousedown = (e) => {
+        if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON")
+          return;
         e.preventDefault();
         pos3 = e.clientX;
         pos4 = e.clientY;
@@ -55,8 +93,6 @@ function initUIExtensions(featureNames, S_map) {
     }
   }
 
-  const configPanel = document.getElementById("config-panel");
-  if (configPanel) {
-    makeDraggable(configPanel);
-  }
+  makeDraggable(document.getElementById("config-panel"));
+  makeDraggable(document.getElementById("legend-panel"));
 }

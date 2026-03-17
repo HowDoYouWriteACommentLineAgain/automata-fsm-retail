@@ -7,24 +7,33 @@
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <button
-      onclick="viz.toggleReachability()"
-      style="position: fixed; top: 10px; right: 10px; z-index: 101"
-    >
-      Toggle View Mode
-    </button>
+    <div id="header-toolbar">
+      <button
+        onclick="viz.toggleReachability()"
+        style="cursor: pointer; padding: 6px 12px"
+      >
+        Toggle View Mode
+      </button>
+      <div
+        style="
+          margin-left: 20px;
+          color: #6b7280;
+          font-size: 0.85rem;
+          font-weight: 500;
+        "
+      >
+        Retail Automata Dashboard
+      </div>
+    </div>
 
     <div id="config-panel" class="panel">
       <div class="handle">::: DRAG TO MOVE</div>
-      <strong>State Variables</strong>
-      <hr />
+      <strong style="font-size: 0.9rem">State Variables</strong>
+      <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0" />
       <div id="ui-feature-list"></div>
     </div>
 
-    <div id="legend-panel" class="panel">
-      <strong>Active S_map Keys</strong>
-      <ul id="ui-smap-list" style="padding-left: 20px; margin: 5px 0"></ul>
-    </div>
+    <div id="legend-panel" class="panel"></div>
 
     <canvas id="fsmCanvas"></canvas>
 
@@ -51,6 +60,8 @@
 
       const mono = MonotonicDFA.WithFeatures(featureNames, S_map, 0);
       const viz = new MonotonicVisualizer("fsmCanvas", mono, FT);
+
+      // Initialize UI
       initUIExtensions(featureNames, S_map);
     </script>
   </body>

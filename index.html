@@ -8,18 +8,20 @@
   </head>
   <body>
     <div id="header-toolbar">
-      <div
-        style="margin-left: 20px;color: #6b7280;font-size: 0.85rem;font-weight: 500;">Retail Automata Dashboard</div>
+      <div style="margin-left: 20px;color: #6b7280;font-size: 0.85rem;font-weight: 500;">Retail Automata Dashboard</div>
     </div>
 
     <div id="constructor-panel" class="panel">
       <div class="handle">::: FSM BULK CONSTRUCTOR</div>
       <div class="panel-content">
-        <label>Target Food (String):</label>
-        <input type="text" id="food-input" placeholder="e.g., boar" style="width:100%; margin-bottom:10px;">
+        <label>1. Define Features (Comma Separated):</label>
+        <input type="text" id="feature-list-input" 
+              placeholder="fiber, carbohydrates, protein" 
+              style="width:100%; margin-bottom:15px;">
         
-        <label>Feature Mapping (CSV: symbol, feature_name):</label>
-        <textarea id="bulk-csv-input" placeholder="b, fiber&#10;b, mt_100_Pesos&#10;o, carbohydrates" 
+        <label>2. Define Alphabet (Symbol: Feature1, Feature2...):</label>
+        <textarea id="alphabet-mapping-input" 
+                  placeholder="b: fiber, mt_100_Pesos&#10;o: carbohydrates, fiber" 
                   style="width:100%; height:120px; font-family:monospace; font-size:11px;"></textarea>
         
         <button id="generate-fsm-btn" class="primary-btn" style="margin-top:10px; width:100%;">GENERATE FSM</button>
@@ -38,7 +40,7 @@
     <div id="viz-panel" class="panel" style="display: flex; flex-direction: column;">
       <div class="handle">::: FSM VISUALIZER</div>
       <div id="viz-container" style="flex-grow: 1; min-height: 0; background: white; position: relative;">
-        <button onclick="viz.toggleReachability()"style="cursor: pointer; padding: 6px 12px">
+        <button id="toggle-reach-btn" style="cursor: pointer; padding: 6px 12px; margin: 10px;">
           Toggle View Mode
         </button>
         <canvas id="fsmCanvas"></canvas>
@@ -52,157 +54,95 @@
 
     <script>
       /**
-      * 1. THE ROW GENERATOR
-      * This makes sure the panels can actually hold your feature data.
-      */
-      function addFeatureRow(name = "", key = "") {
-        const list = document.getElementById("ui-feature-list");
-        if (!list) return;
-
-        const div = document.createElement("div");
-        div.className = "feature-row";
-        div.style = "display: flex; gap: 5px; margin-bottom: 8px; align-items: center;";
-        div.innerHTML = `
-          <input type="text" value="${name}" class="feat-name" placeholder="Feature (e.g. fiber)" style="flex: 1;">
-          <input type="text" value="${key}" class="feat-key" placeholder="Key (e.g. b)" style="width: 40px; text-align: center;">
-          <button onclick="this.parentElement.remove()" style="cursor:pointer; background:none; border:1px solid #ccc; border-radius:3px;">×</button>
-        `;
-        list.appendChild(div);
-      }
-
-      /**
-      * 2. THE DATA HARVESTER & FSM INITIALIZER
-      * This replaces your hardcoded block and scrapes the panels instead.
-      */
-      function buildFSMFromPanels() {
-        const food = document.getElementById("food-input").value.trim() || "boar";
-        const rows = document.querySelectorAll(".feature-row");
-        
-        const featureNames = [];
-        const mappingPairs = [];
-
-        // Step A: Scrape the names and keys from the UI
-        rows.forEach(row => {
-          const name = row.querySelector(".feat-name").value.trim();
-          const key = row.querySelector(".feat-key").value.trim();
-          if (name && key) {
-            featureNames.push(name);
-            mappingPairs.push({ key, name });
-          }
-        });
+       * The Main Build Function
+       * Scrapes the two bulk inputs and initializes the MonotonicDFA.
+       */
+      function buildFSM() {
+        // --- 1. HARVEST FEATURES ---
+        const featureRaw = document.getElementById("feature-list-input").value;
+        const featureNames = featureRaw.split(',').map(f => f.trim()).filter(f => f);
 
         if (featureNames.length === 0) {
-          console.error("No features found in panels.");
+          console.error("Build failed: No features found in the input box.");
           return;
         }
 
-        // Step B: Your Exact Logic (Dynamic)
+        // Map names to bits (1, 2, 4, 8...)
         const FT = MonotonicDFA.encodeFEATURES(featureNames);
 
+        // --- 2. HARVEST ALPHABET ---
+        const mappingRaw = document.getElementById("alphabet-mapping-input").value.trim();
+        const lines = mappingRaw.split('\n');
         const S_map = {};
-        mappingPairs.forEach(pair => {
-          const bitmask = FT[pair.name];
-          // This allows 'b' to trigger 'fiber' | 'mt_100_Pesos' if you have two rows for 'b'
-          S_map[pair.key] = (S_map[pair.key] || 0) | bitmask;
+
+        lines.forEach(line => {
+          if (!line.includes(':')) return;
+          const [symbolPart, featuresPart] = line.split(':');
+          const symbol = symbolPart.trim();
+          const assignedFeatures = featuresPart.split(',').map(f => f.trim());
+
+          let symbolMask = 0;
+          assignedFeatures.forEach(feat => {
+            if (FT[feat]) {
+              symbolMask |= FT[feat]; // Combine bits
+            } else if (feat !== "") {
+              console.warn(`Feature "${feat}" assigned to "${symbol}" does not exist in the Feature List.`);
+            }
+          });
+          S_map[symbol] = symbolMask;
         });
 
-        // Step C: Initialize Engine and Viz
-        const mono = MonotonicDFA.WithFeatures(featureNames, S_map, 0);
-        window.viz = new MonotonicVisualizer("fsmCanvas", mono, FT);
-        
-        console.log("FSM Generated from Panels:", { featureNames, S_map });
+        // --- 3. CONSOLE LOGGING (The Verification) ---
+        console.log("%c--- FSM DATA CAPTURE ---", "color: #10b981; font-weight: bold; font-size: 1.2rem;");
+        console.log("Unique Features:", featureNames);
+        console.log("Feature Table (FT):", FT);
+        console.log("Alphabet Map (S_map):", S_map);
+        console.log("States Generated:", 1 << featureNames.length);
+
+        // --- 4. EXECUTION ---
+        try {
+          // Initialize machine
+          const mono = MonotonicDFA.WithFeatures(featureNames, S_map, 0);
+          
+          // Re-initialize the visualizer
+          window.viz = new MonotonicVisualizer("fsmCanvas", mono, FT);
+          
+          document.getElementById("active-args-display").innerHTML = `
+            <strong>FSM Build Success</strong><hr>
+            Features: ${featureNames.length}<br>
+            Total States: ${1 << featureNames.length}
+          `;
+        } catch (err) {
+          console.error("FSM Initialization Error:", err);
+        }
       }
 
-      // --- INITIALIZATION ---
-
-      // 1. Setup Draggable/UI Logic (from your ui.js)
+      // --- INITIALIZATION ON PAGE LOAD ---
+      
+      // 1. Initialize Draggable panels
       if (typeof initUIExtensions === "function") {
         initUIExtensions(); 
       }
 
-      // 2. Link the "Add Feature" button in the panel
-      const addBtn = document.getElementById("add-feature-btn");
-      if (addBtn) addBtn.onclick = () => addFeatureRow();
+      // 2. Populate Default Bulk Data (The Schema)
+      document.getElementById("feature-list-input").value = 
+        "fiber, carbohydrates, protein, mt_100_Pesos, mt_500_Pesos";
 
-      // 3. Link the "Generate" button in the panel
-      const genBtn = document.getElementById("generate-fsm-btn");
-      if (genBtn) genBtn.onclick = buildFSMFromPanels;
+      document.getElementById("alphabet-mapping-input").value = 
+`b: fiber, mt_100_Pesos
+o: carbohydrates, fiber, mt_500_Pesos
+a: carbohydrates, mt_100_Pesos
+r: protein, mt_100_Pesos`;
 
-      // 4. Seed the panels with your specific data so it works on load
-      document.getElementById("food-input").value = "boar";
+      // 3. Bind Buttons
+      document.getElementById("generate-fsm-btn").onclick = buildFSM;
       
-      // Create the rows that match your requirement
-      // Note: To get 'b' to trigger two things, we add two rows for 'b'
-      const defaultData = [
-        { n: "fiber", k: "b" },
-        { n: "mt_100_Pesos", k: "b" },
-        { n: "carbohydrates", k: "o" },
-        { n: "fiber", k: "o" },
-        { n: "mt_500_Pesos", k: "o" },
-        { n: "carbohydrates", k: "a" },
-        { n: "mt_100_Pesos", k: "a" },
-        { n: "protien", k: "r" },
-        { n: "mt_100_Pesos", k: "r" }
-      ];
-
-      defaultData.forEach(d => addFeatureRow(d.n, d.k));
-
-      // 5. Initial Execution
-      buildFSMFromPanels();
-    </script>
-    <!-- <script>
-      const featureNames = [
-        "fiber",
-        "carbohydrates",
-        "protien",
-        "mt_100_Pesos",
-        "mt_500_Pesos",
-        "mt_1000_Pesos",
-      ];
-      const FT = MonotonicDFA.encodeFEATURES(featureNames);
-
-      const S_map = {
-        b: FT["fiber"] | FT["mt_100_Pesos"],
-        o: FT["carbohydrates"] | FT["fiber"] | FT["mt_500_Pesos"],
-        a: FT["carbohydrates"] | FT["mt_100_Pesos"],
-        r: FT["protien"] | FT["mt_100_Pesos"],
+      document.getElementById("toggle-reach-btn").onclick = () => {
+        if (window.viz) window.viz.toggleReachability();
       };
 
-      const mono = MonotonicDFA.WithFeatures(featureNames, S_map, 0);
-      const viz = new MonotonicVisualizer("fsmCanvas", mono, FT);
-
-      // Initialize UI
-      initUIExtensions(featureNames, S_map);
+      // 4. Run the first build automatically
+      window.onload = buildFSM;
     </script>
-    <script>
-      /**
-      * Scrapes the panel inputs and logs them to the console.
-      */
-      function logPanelData() {
-        const food = document.getElementById("food-input").value;
-        const rows = document.querySelectorAll(".feature-row");
-
-        console.log("--- Panel Data Capture ---");
-        console.log("Target Food:", food);
-
-        rows.forEach((row, index) => {
-          const name = row.querySelector(".feat-name").value;
-          const key = row.querySelector(".feat-key").value;
-          
-          console.log(`Row ${index}:`, { 
-            featureName: name, 
-            symbolKey: key 
-          });
-        });
-        console.log("--------------------------");
-      }
-
-      // Hook it up to your existing Generate button
-      const genBtn = document.getElementById("generate-fsm-btn");
-      if (genBtn) {
-        genBtn.onclick = logPanelData;
-      }
-  </script> -->
-
   </body>
 </html>

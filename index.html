@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <button onclick="viz.toggleReachability()" style="position:fixed; top:10px; right:10px;">
+    Toggle View Mode
+  </button>
+  <canvas id="fsmCanvas"></canvas>
+  <script src="./fsm.js"></script>
+  <script src="./viz.js"></script>
+  <script>
+
+  const featureNames = ["fiber", "carbohydrates", "protien", "mt_100_Pesos", "mt_500_Pesos", "mt_1000_Pesos"];
+  const FT = MonotonicDFA.encodeFEATURES(featureNames);
+
+  const S_map = {
+    b: FT["fiber"] | FT["mt_100_Pesos"],
+    o: FT["carbohydrates"] | FT["fiber"] | FT["mt_500_Pesos"],
+    a: FT["carbohydrates"] | FT["mt_100_Pesos"],
+    r: FT["protien"] | FT["mt_100_Pesos"],
+  };
+
+  // Pass the ARRAY first, then the MAP
+  const mono = MonotonicDFA.WithFeatures(featureNames, S_map, 0, );
+    const viz = new MonotonicVisualizer("fsmCanvas", mono, FT);
+    //.getFinalStateOf(["b","o"])
+
+    
+  </script>
+</body>
+</html>
+
+
+<!-- 
+    // const Q = ['A','B'];
+    // const S = ['a','b'];
+    // const d = {
+    //   0: [Q[0],Q[1]],
+    //   1: [Q[0],Q[1]],
+    // }
+    // const automaton = new DFA(Q,S,d).getFinalStateOf("ab");
+    // console.log(automaton);
+
+-->
+<!-- 
+
+const canvas = document.getElementById("fsmCanvas");
+  const ctx = canvas.getContext("2d");
+
+  const features = ["fiber", "carb", "protein"];
+  const foods = {
+    B: ["fiber"], 
+    O: ["fiber","carb"], 
+    C: ["protein"], 
+    R: ["carb"]
+  };
+
+  // generate all states (bitmask)
+  const states = [];
+  const n = features.length;
+  for (let i=0; i < (1 << n); i++) {
+    const stateFeatures = [];
+    for (let j=0; j < n; j++) {
+        // if(i==0 && j==0) stateFeatures.push("start")
+        if ((i >> j) & 1) stateFeatures.push(features[j]);
+    }
+    states.push({ id: i, features: stateFeatures });
+  }
+
+  // simple layout: circle
+  const centerX = 400, centerY = 400, radius = 300;
+  states.forEach((state, idx) => {
+      const angle = (2 * Math.PI / states.length) * idx;
+      state.x = centerX + radius * Math.cos(angle);
+      state.y = centerY + radius * Math.sin(angle);
+  });
+
+  // draw edges
+  states.forEach(state => {
+      for (let food in foods) {
+          let nextBits = state.id;
+          foods[food].forEach(f => {
+              const idx = features.indexOf(f);
+              nextBits |= 1 << idx;
+          });
+          const nextState = states[nextBits];
+          ctx.beginPath();
+          ctx.moveTo(state.x, state.y);
+          ctx.lineTo(nextState.x, nextState.y); 
+          ctx.strokeStyle = "blue";
+          ctx.stroke();
+          // optionally draw food label
+          ctx.fillStyle = "red";
+          ctx.font='12px sans-serif';
+          ctx.fillText(food, (state.x+nextState.x)/2, (state.y+nextState.y)/2);
+      }
+  });
+
+    // draw nodes
+  states.forEach(state => {
+    ctx.strokeStyle = "black";
+      ctx.beginPath();
+      ctx.arc(state.x, state.y, 60, 0, 2*Math.PI);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#000";
+      ctx.fillText(`Q`, state.x-15, state.y);
+      ctx.fillText(state.id, state.x-8, state.y+5);
+  });
+
+  function runFSM(word){
+    let finalState = states[0];
+    console.log(states);
+    
+    for(const symbol of word){
+      finalState |= states[foods[symbol]];
+      console.log(foods[symbol],states[foods[symbol]])
+    }
+    return finalState;
+  }
+
+  // states.forEach(s=>console.log(s.features));
+  console.log(runFSM(["B", "C"]));
+
+-->

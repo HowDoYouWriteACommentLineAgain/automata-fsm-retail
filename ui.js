@@ -4,6 +4,11 @@
  */
 
 function initUIExtensions(featureNames, S_map) {
+  
+  addMinimizeBehavior("config-panel");
+  addMinimizeBehavior("legend-panel");
+  addMinimizeBehavior("viz-panel");
+
   // 1. Populate Feature List (Checkboxes)
   const featureList = document.getElementById("ui-feature-list");
   if (featureList) {
@@ -103,6 +108,30 @@ function initUIExtensions(featureNames, S_map) {
       };
       window.onmouseup = () => { window.onmousemove = null; };
   };
+
+  function addMinimizeBehavior(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    const handle = panel.querySelector(".handle");
+    if (!handle) return;
+
+    // Create the button
+    const btn = document.createElement("button");
+    btn.className = "min-btn";
+    btn.innerHTML = "−"; // Minus sign
+    btn.title = "Toggle Minimize";
+
+    btn.onclick = (e) => {
+      e.stopPropagation(); // Prevent drag from triggering
+      panel.classList.toggle("minimized");
+      
+      // Change icon based on state
+      btn.innerHTML = panel.classList.contains("minimized") ? "+" : "−";
+    };
+
+    handle.appendChild(btn);
+  }
 
   makeDraggable(panel);
   makeDraggable(document.getElementById("config-panel"));

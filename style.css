@@ -36,6 +36,15 @@ body {
   padding: 12px;
   z-index: 100;
   min-width: 240px;
+
+  transition: 
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s ease-out,
+    opacity 0.2s ease;
+  
+  /* Required for smooth height transitions */
+  overflow: hidden;
 }
 
 #config-panel {
@@ -149,3 +158,49 @@ body {
   right: 0;
   background: linear-gradient(135deg, transparent 50%, #cbd5e1 50%);
 }
+
+/* The 'minimized' state for any panel */
+.panel.minimized {
+  /* Force the width and a tiny height */
+  width: 220px !important;
+  height: 34px !important; /* Matches the height of your handle */
+  min-height: 0 !important;
+  overflow: hidden !important; /* Crucial: cuts off the white void */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Hide everything inside the panel except the handle when minimized */
+.panel.minimized .handle {
+  border-bottom: none;
+  margin: 0;
+  padding: 6px 12px;
+}
+
+.panel.minimized > *:not(.handle) {
+  display: none !important;
+  opacity: 0;
+  pointer-events: none; /* Prevent clicking hidden buttons */
+  /* We use visibility/opacity instead of display:none during 
+     the animation to keep the layout stable for the transition */
+}
+
+.panel > *:not(.handle) {
+  transition: opacity 0.2s ease;
+  opacity: 1;
+}
+
+/* Style for the toggle button in the header */
+.min-btn {
+  float: right;
+  cursor: pointer;
+  background: #e5e7eb;
+  border: none;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  line-height: 18px;
+  text-align: center;
+  font-weight: bold;
+  margin-left: 5px;
+}
+.min-btn:hover { background: #d1d5db; }

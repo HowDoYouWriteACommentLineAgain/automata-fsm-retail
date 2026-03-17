@@ -92,7 +92,19 @@ function initUIExtensions(featureNames, S_map) {
       };
     }
   }
+  const resizer = document.getElementById('viz-resizer');
+  const panel = document.getElementById('viz-panel');
 
+  resizer.onmousedown = (e) => {
+      e.preventDefault();
+      window.onmousemove = (e) => {
+          panel.style.width = (e.clientX - panel.offsetLeft) + "px";
+          panel.style.height = (e.clientY - panel.offsetTop) + "px";
+      };
+      window.onmouseup = () => { window.onmousemove = null; };
+  };
+
+  makeDraggable(panel);
   makeDraggable(document.getElementById("config-panel"));
   makeDraggable(document.getElementById("legend-panel"));
 }

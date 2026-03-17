@@ -8,12 +8,6 @@
   </head>
   <body>
     <div id="header-toolbar">
-      <button
-        onclick="viz.toggleReachability()"
-        style="cursor: pointer; padding: 6px 12px"
-      >
-        Toggle View Mode
-      </button>
       <div
         style="
           margin-left: 20px;
@@ -35,7 +29,16 @@
 
     <div id="legend-panel" class="panel"></div>
 
-    <canvas id="fsmCanvas"></canvas>
+    <div id="viz-panel" class="panel" style="display: flex; flex-direction: column;">
+      <div class="handle">::: FSM VISUALIZER</div>
+      <div id="viz-container" style="flex-grow: 1; min-height: 0; background: white; position: relative;">
+        <button onclick="viz.toggleReachability()"style="cursor: pointer; padding: 6px 12px">
+          Toggle View Mode
+        </button>
+        <canvas id="fsmCanvas"></canvas>
+      </div>
+      <div id="viz-resizer" style="width:10px; height:10px; cursor:nwse-resize; position:absolute; bottom:0; right:0; background:#ccc;"></div>
+    </div>
 
     <script src="./fsm.js"></script>
     <script src="./viz.js"></script>

@@ -1,33 +1,33 @@
 class MonotonicVisualizer {
   constructor(canvasId, monotonicDfa, featureMap) {
     this.canvas = document.getElementById(canvasId);
+    // Bind to the parent container for relative sizing
+    this.container = this.canvas.parentElement; 
     this.ctx = this.canvas.getContext('2d');
     this.dfa = monotonicDfa;
-    this.FT = featureMap; // The encodeFEATURES object
+    this.FT = featureMap;
     
     this.showOnlyReachable = true;
     this.hoveredState = null;
     this.mousePos = { x: 0, y: 0 };
     
-    this.padding = 80;
+    this.padding = 40; // Reduced padding for panel view
     this.nodeRadius = 24;
     this.stateCoords = new Map();
 
-    // Color palette for symbols
     this.symbolColors = {
-      b: '#3b82f6', // Blue (Fiber)
-      o: '#f97316', // Orange (Carbs/Fiber)
-      a: '#eab308', // Amber (Carbs)
-      r: '#ef4444', // Red (Protein)
-      default: '#94a3b8'
+      b: '#3b82f6', o: '#f97316', a: '#eab308', r: '#ef4444', default: '#94a3b8'
     };
 
     this.initEvents();
-    this.resize();
+    // Initial draw
+    setTimeout(() => this.resize(), 0);
   }
 
   initEvents() {
-    window.addEventListener('resize', () => this.resize());
+    // Watch the container, not the window
+    const ro = new ResizeObserver(() => this.resize());
+    if (this.container) ro.observe(this.container);
     
     this.canvas.addEventListener('mousemove', (e) => {
       const rect = this.canvas.getBoundingClientRect();
@@ -36,7 +36,6 @@ class MonotonicVisualizer {
         y: e.clientY - rect.top
       };
 
-      // Check if hovering over a node
       this.hoveredState = null;
       for (const [state, pos] of this.stateCoords) {
         const dist = Math.hypot(pos.x - this.mousePos.x, pos.y - this.mousePos.y);
@@ -72,13 +71,17 @@ class MonotonicVisualizer {
   }
 
   resize() {
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    if (!this.container) return;
+    // Set canvas dimensions to match container exactly
+    this.canvas.width = this.container.clientWidth;
+    this.canvas.height = this.container.clientHeight;
     this.draw();
   }
 
   draw() {
     const { width, height } = this.canvas;
+    if (width === 0 || height === 0) return; // Prevent division by zero
+    
     this.ctx.clearRect(0, 0, width, height);
     this.stateCoords.clear();
 
@@ -94,7 +97,9 @@ class MonotonicVisualizer {
     });
 
     const layerKeys = Object.keys(layers).sort((a, b) => a - b);
-    
+    const horizontalPadding = 60; // Extra breathing room for left/right
+    const verticalPadding = 50;   // Extra breathing room for top/bottom
+
     layerKeys.forEach((level, lIdx) => {
       const statesInLayer = layers[level];
       const xStep = width / (statesInLayer.length + 1);
@@ -104,7 +109,6 @@ class MonotonicVisualizer {
       });
     });
 
-    // Draw Arrows
     const symbols = Object.keys(this.dfa.S_map);
     for (const state of activeStates) {
       const startPos = this.stateCoords.get(state);
@@ -119,14 +123,12 @@ class MonotonicVisualizer {
       }
     }
 
-    // Draw Nodes
     this.stateCoords.forEach((pos, state) => {
       const isFinal = this.dfa.F.includes(state);
       const isHovered = this.hoveredState === state;
       this.drawNode(pos, state, isFinal, isHovered);
     });
 
-    // Draw Tooltip for Hover
     if (this.hoveredState !== null) {
       this.drawTooltip();
     }
@@ -156,11 +158,10 @@ class MonotonicVisualizer {
     this.ctx.stroke();
     this.ctx.globalAlpha = 1.0;
 
-    // Arrowhead
     this.ctx.fillStyle = color;
     this.ctx.save();
     this.ctx.translate(endX, endY);
-    this.ctx.rotate(isLongJump ? angle + 0.1 : angle); // Slight adjust for curve
+    this.ctx.rotate(isLongJump ? angle + 0.1 : angle);
     this.ctx.beginPath();
     this.ctx.moveTo(0, 0);
     this.ctx.lineTo(-8, -4);
@@ -178,7 +179,6 @@ class MonotonicVisualizer {
     this.ctx.fill();
     this.ctx.stroke();
 
-    // Double Circle for Final State
     if (isFinal) {
       this.ctx.beginPath();
       this.ctx.arc(pos.x, pos.y, this.nodeRadius - 4, 0, Math.PI * 2);

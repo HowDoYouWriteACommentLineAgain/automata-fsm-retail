@@ -1,7 +1,6 @@
 class MonotonicVisualizer {
   constructor(canvasId, monotonicDfa, featureMap) {
     this.canvas = document.getElementById(canvasId);
-    // Bind to the parent container for relative sizing
     this.container = this.canvas.parentElement; 
     this.ctx = this.canvas.getContext('2d');
     this.dfa = monotonicDfa;
@@ -11,7 +10,7 @@ class MonotonicVisualizer {
     this.hoveredState = null;
     this.mousePos = { x: 0, y: 0 };
     
-    this.padding = 40; // Reduced padding for panel view
+    this.padding = 40;
     this.nodeRadius = 24;
     this.stateCoords = new Map();
 
@@ -20,20 +19,22 @@ class MonotonicVisualizer {
     };
 
     this.initEvents();
-    // Initial draw
     setTimeout(() => this.resize(), 0);
   }
 
   initEvents() {
-    // Watch the container, not the window
     const ro = new ResizeObserver(() => this.resize());
     if (this.container) ro.observe(this.container);
     
     this.canvas.addEventListener('mousemove', (e) => {
       const rect = this.canvas.getBoundingClientRect();
+      
+      //NORMALIZE MOUSE POSITION TO PREVNT CUMULATIVE DRIFTING
+      const scaleX = this.canvas.width / rect.width;
+      const scaleY = this.canvas.height / rect.height;
       this.mousePos = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
       };
 
       this.hoveredState = null;
@@ -50,6 +51,7 @@ class MonotonicVisualizer {
 
   toggleReachability() {
     this.showOnlyReachable = !this.showOnlyReachable;
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.draw();
   }
 
@@ -72,7 +74,6 @@ class MonotonicVisualizer {
 
   resize() {
     if (!this.container) return;
-    // Set canvas dimensions to match container exactly
     this.canvas.width = this.container.clientWidth;
     this.canvas.height = this.container.clientHeight;
     this.draw();
@@ -80,9 +81,12 @@ class MonotonicVisualizer {
 
   draw() {
     const { width, height } = this.canvas;
-    if (width === 0 || height === 0) return; // Prevent division by zero
+    if (width === 0 || height === 0) return; 
     
-    this.ctx.clearRect(0, 0, width, height);
+    // Ghost Killer: Solid background wipe
+    this.ctx.fillStyle = "#ffffff";
+    this.ctx.fillRect(0, 0, width, height);
+    
     this.stateCoords.clear();
 
     const activeStates = this.showOnlyReachable 
@@ -97,9 +101,7 @@ class MonotonicVisualizer {
     });
 
     const layerKeys = Object.keys(layers).sort((a, b) => a - b);
-    const horizontalPadding = 60; // Extra breathing room for left/right
-    const verticalPadding = 50;   // Extra breathing room for top/bottom
-
+    
     layerKeys.forEach((level, lIdx) => {
       const statesInLayer = layers[level];
       const xStep = width / (statesInLayer.length + 1);
@@ -110,12 +112,30 @@ class MonotonicVisualizer {
     });
 
     const symbols = Object.keys(this.dfa.S_map);
+
+    // Identify Neighbors for highlighting
+    const neighbors = new Set();
+    if (this.hoveredState !== null) {
+      symbols.forEach(char => {
+        neighbors.add(this.dfa._nextState(this.hoveredState, char));
+      });
+    }
+
+    // Draw Arrows
     for (const state of activeStates) {
       const startPos = this.stateCoords.get(state);
       for (const char of symbols) {
         const nextState = this.dfa._nextState(state, char);
         const endPos = this.stateCoords.get(nextState);
+        
         if (endPos && nextState !== state) {
+          // Arrow Highlight Logic: Fades if not outgoing from hovered node
+          if (this.hoveredState !== null) {
+            this.ctx.globalAlpha = (state === this.hoveredState) ? 0.9 : 0.03;
+          } else {
+            this.ctx.globalAlpha = 0.4;
+          }
+
           const color = this.symbolColors[char] || this.symbolColors.default;
           const isJumping = Math.abs(endPos.y - startPos.y) > 120;
           this.drawCurvedArrow(startPos, endPos, isJumping, color);
@@ -123,15 +143,25 @@ class MonotonicVisualizer {
       }
     }
 
+    // Draw Nodes
     this.stateCoords.forEach((pos, state) => {
       const isFinal = this.dfa.F.includes(state);
       const isHovered = this.hoveredState === state;
+      const isNeighbor = neighbors.has(state);
+
+      if (this.hoveredState !== null) {
+        this.ctx.globalAlpha = (isHovered || isNeighbor) ? 1.0 : 0.1;
+      } else {
+        this.ctx.globalAlpha = 1.0;
+      }
+      
       this.drawNode(pos, state, isFinal, isHovered);
     });
 
-    if (this.hoveredState !== null) {
-      this.drawTooltip();
-    }
+    // Overlays
+    this.ctx.globalAlpha = 1.0;
+    if (this.hoveredState !== null) this.drawTooltip();
+    this.drawAlphabetLegend();
   }
 
   drawCurvedArrow(from, to, isLongJump, color) {
@@ -144,7 +174,6 @@ class MonotonicVisualizer {
 
     this.ctx.beginPath();
     this.ctx.strokeStyle = color;
-    this.ctx.globalAlpha = 0.6;
     this.ctx.lineWidth = isLongJump ? 1 : 2;
     this.ctx.moveTo(startX, startY);
 
@@ -156,7 +185,6 @@ class MonotonicVisualizer {
       this.ctx.lineTo(endX, endY);
     }
     this.ctx.stroke();
-    this.ctx.globalAlpha = 1.0;
 
     this.ctx.fillStyle = color;
     this.ctx.save();
@@ -175,7 +203,7 @@ class MonotonicVisualizer {
     this.ctx.arc(pos.x, pos.y, this.nodeRadius, 0, Math.PI * 2);
     this.ctx.fillStyle = isHovered ? '#f1f5f9' : '#fff';
     this.ctx.strokeStyle = isHovered ? '#3b82f6' : '#1e293b';
-    this.ctx.lineWidth = 2;
+    this.ctx.lineWidth = isHovered ? 3 : 2;
     this.ctx.fill();
     this.ctx.stroke();
 
@@ -191,6 +219,24 @@ class MonotonicVisualizer {
     this.ctx.fillText(state, pos.x, pos.y + 4);
   }
 
+  drawAlphabetLegend() {
+    const symbols = Object.keys(this.dfa.S_map);
+    const padding = 20;
+    let x = padding;
+    let y = this.canvas.height - padding;
+
+    symbols.forEach((char) => {
+      const color = this.symbolColors[char] || this.symbolColors.default;
+      this.ctx.fillStyle = color;
+      this.ctx.fillRect(x, y - 12, 12, 12);
+      this.ctx.fillStyle = "#4b5563";
+      this.ctx.font = "12px monospace";
+      this.ctx.textAlign = "left";
+      this.ctx.fillText(`Symbol: ${char}`, x + 18, y - 2);
+      x += 100;
+    });
+  }
+
   drawTooltip() {
     const features = MonotonicDFA.decodeFEATURES(this.hoveredState, this.FT);
     const txt = features.length > 0 ? features.join(' + ') : "Start (0)";
@@ -200,6 +246,7 @@ class MonotonicVisualizer {
     this.ctx.fillStyle = "rgba(0,0,0,0.8)";
     this.ctx.fillRect(this.mousePos.x + 10, this.mousePos.y - 30, w + 20, 25);
     this.ctx.fillStyle = "#fff";
+    this.ctx.textAlign = "center";
     this.ctx.fillText(txt, this.mousePos.x + 20 + w/2, this.mousePos.y - 13);
   }
 }

@@ -2,136 +2,117 @@ function initUIExtensions() {
   const HEADER_HEIGHT = 60;
   let highestZ = 100;
 
-  const allPanels = document.querySelectorAll(".draggable-panel");
+  // 1. Initialize Behavior & Initial Layout (Matching your Image)
+  const sidebarIds = ["tutorial-panel", "constructor-panel", "args-panel"];
+  const vizId = "viz-panel";
 
-  allPanels.forEach((panel) => {
-    panel.style.position = "absolute";
-    
-    // 1. INITIAL POSITIONING (Matching your Image)
-    if (panel.id === "viz-panel") {
-      // Large Visualizer on the right
-      panel.style.top = "80px";
-      panel.style.left = "320px";
-      panel.classList.remove("minimized"); 
-    } else {
-      // Sidebars stacked on the left
-      panel.style.left = "20px";
-      panel.classList.add("minimized");
-
-      if (panel.id === "tutorial-panel") panel.style.top = "80px";
-      else if (panel.id === "constructor-panel") panel.style.top = "190px";
-      else if (panel.id === "args-panel") panel.style.top = "300px";
-      else panel.style.top = "410px"; // Fallback for any other panels
+  // Position Sidebar Panels (Stacked Left)
+  sidebarIds.forEach((id, i) => {
+    addMinimizeBehavior(id);
+    const p = document.getElementById(id);
+    if (p) {
+      p.classList.add("minimized"); // Default to closed like image
+      p.style.top = (80 + (i * 110)) + "px"; 
+      p.style.left = "20px";
+      p.style.zIndex = highestZ;
+      makeDraggable(p);
     }
-
-    panel.style.zIndex = highestZ;
-
-    // 2. Bring to Front on Click
-    panel.addEventListener("mousedown", () => {
-      highestZ++;
-      panel.style.zIndex = highestZ;
-    });
-
-    // 3. Attach Behaviors
-    addMinimizeBehavior(panel);
-    makeDraggable(panel);
-    setupResizer(panel); // Added Resizer Logic
   });
 
+  // Position Viz Panel (Main Right)
+  addMinimizeBehavior(vizId);
+  const vPanel = document.getElementById(vizId);
+  if (vPanel) {
+    vPanel.style.top = "80px";
+    vPanel.style.left = "320px";
+    vPanel.style.width = "600px";
+    vPanel.style.height = "400px";
+    vPanel.style.zIndex = highestZ;
+    makeDraggable(vPanel);
+  }
+
+  // 2. THE RESIZER IMPLEMENTATION (Restored Section 5)
+  const resizer = document.getElementById('viz-resizer');
+  if (resizer && vPanel) {
+    resizer.onmousedown = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startWidth = vPanel.offsetWidth;
+      const startHeight = vPanel.offsetHeight;
+      const startX = e.clientX;
+      const startY = e.clientY;
+
+      const doResize = (moveEvent) => {
+        const newWidth = startWidth + (moveEvent.clientX - startX);
+        const newHeight = startHeight + (moveEvent.clientY - startY);
+        if (newWidth > 200) vPanel.style.width = newWidth + 'px';
+        if (newHeight > 150) vPanel.style.height = newHeight + 'px';
+        
+        // Sync the FSM Drawing
+        if (window.viz) window.viz.resize();
+      };
+
+      const stopResize = () => {
+        window.removeEventListener('mousemove', doResize);
+        window.removeEventListener('mouseup', stopResize);
+      };
+
+      window.addEventListener('mousemove', doResize);
+      window.addEventListener('mouseup', stopResize);
+    };
+  }
+
+  // --- INTERNAL HELPERS (Restored) ---
+
   function makeDraggable(el) {
+    if (!el) return;
     const handle = el.querySelector(".handle");
     if (!handle) return;
 
     handle.onmousedown = (e) => {
-      // FIX: Don't drag if clicking buttons or resizers
       if (["INPUT", "BUTTON", "TEXTAREA"].includes(e.target.tagName)) return;
-      if (e.target.classList.contains("resizer") || e.target.id.includes("resizer")) return;
-
-      e.preventDefault();
+      
+      // Bring to front
       highestZ++;
       el.style.zIndex = highestZ;
+      
+      e.preventDefault();
+      let pos3 = e.clientX, pos4 = e.clientY;
 
-      let startX = e.clientX;
-      let startY = e.clientY;
+      document.onmousemove = (e) => {
+        let pos1 = pos3 - e.clientX, pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
 
-      const onMove = (mE) => {
-        const dx = startX - mE.clientX;
-        const dy = startY - mE.clientY;
-        startX = mE.clientX;
-        startY = mE.clientY;
-
-        let newTop = el.offsetTop - dy;
-        let newLeft = el.offsetLeft - dx;
+        let newTop = el.offsetTop - pos2;
+        let newLeft = el.offsetLeft - pos1;
 
         if (newTop < HEADER_HEIGHT) newTop = HEADER_HEIGHT;
+        if (newLeft < 0) newLeft = 0;
+        
         el.style.top = newTop + "px";
         el.style.left = newLeft + "px";
       };
 
-      const onUp = () => {
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
-      };
-
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
+      document.onmouseup = () => { document.onmousemove = null; };
     };
   }
 
-  // --- THE RESIZER FIX ---
-  function setupResizer(panel) {
-    const resizer = panel.querySelector(".resizer") || document.getElementById(panel.id + "-resizer");
-    if (!resizer) return;
-
-    resizer.onmousedown = (e) => {
-      e.preventDefault();
-      e.stopPropagation(); // Prevents the 'drag' logic from triggering
-
-      const startWidth = panel.offsetWidth;
-      const startHeight = panel.offsetHeight;
-      const startX = e.clientX;
-      const startY = e.clientY;
-
-      const onResizeMove = (mE) => {
-        const newWidth = startWidth + (mE.clientX - startX);
-        const newHeight = startHeight + (mE.clientY - startY);
-
-        if (newWidth > 200) panel.style.width = newWidth + "px";
-        if (newHeight > 100) panel.style.height = newHeight + "px";
-
-        // Sync Viz if applicable
-        if (panel.id === "viz-panel" && window.viz) {
-          window.viz.resize();
-        }
-      };
-
-      const onResizeUp = () => {
-        window.removeEventListener('mousemove', onResizeMove);
-        window.removeEventListener('mouseup', onResizeUp);
-      };
-
-      window.addEventListener('mousemove', onResizeMove);
-      window.addEventListener('mouseup', onResizeUp);
-    };
-  }
-
-  function addMinimizeBehavior(panel) {
+  function addMinimizeBehavior(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
     const handle = panel.querySelector(".handle");
     if (!handle || handle.querySelector(".min-btn")) return;
 
     const btn = document.createElement("button");
     btn.className = "min-btn";
     btn.innerHTML = panel.classList.contains("minimized") ? "+" : "−";
-    btn.style = "float: right; cursor: pointer; background: none; border: none; font-weight: bold; color: inherit; padding: 0 5px;";
+    btn.style = "float: right; cursor: pointer; background: none; border: none; font-weight: bold; color: inherit;";
     
     btn.onclick = (e) => {
       e.stopPropagation();
       const isMin = panel.classList.toggle("minimized");
       btn.innerHTML = isMin ? "+" : "−";
-      if (!isMin) {
-        highestZ++;
-        panel.style.zIndex = highestZ;
-      }
     };
     handle.appendChild(btn);
   }

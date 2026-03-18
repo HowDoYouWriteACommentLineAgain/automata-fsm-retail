@@ -14,6 +14,9 @@ class MonotonicVisualizer {
     this.nodeRadius = 24;
     this.stateCoords = new Map();
 
+    // ALONXI UPDATE! Tracepath so it can apply to the Main Viz aswell
+    this.tracePath = [];
+
     this.symbolColors = {
       b: '#3b82f6', o: '#f97316', a: '#eab308', r: '#ef4444', default: '#94a3b8'
     };
@@ -131,6 +134,8 @@ draw() {
       });
     }
 
+    // [[ UPDATE NI ALONXI: DRAW ARROWS & DRAW NODES. NOTE: FIXED BY GEMINI SO PROPER PATHS WOULD TRACE ]]
+
     // Draw Arrows
     for (const state of activeStates) {
       const startPos = this.stateCoords.get(state);
@@ -139,11 +144,20 @@ draw() {
         const endPos = this.stateCoords.get(nextState);
         
         if (endPos && nextState !== state) {
-          if (this.hoveredState !== null) {
+          // --- HIGHLIGHT LOGIC START ---
+          const isPathTransition = this.tracePath.includes(state) && 
+                                   this.tracePath[this.tracePath.indexOf(state) + 1] === nextState;
+          
+          if (this.tracePath.length > 0) {
+            // If tracing, only show arrows in the path
+            this.ctx.globalAlpha = isPathTransition ? 1.0 : 0.05;
+          } else if (this.hoveredState !== null) {
+            // Fallback to hover logic
             this.ctx.globalAlpha = (state === this.hoveredState) ? 0.9 : 0.05;
           } else {
             this.ctx.globalAlpha = 0.4;
           }
+          // --- HIGHLIGHT LOGIC END ---
 
           const color = this.symbolColors[char] || this.symbolColors.default;
           const isJumping = Math.abs(endPos.y - startPos.y) > 120;
@@ -157,8 +171,16 @@ draw() {
       const isFinal = this.dfa.F.includes(state);
       const isHovered = this.hoveredState === state;
       const isNeighbor = neighbors.has(state);
+      const isInPath = this.tracePath.includes(state);
 
-      this.ctx.globalAlpha = (this.hoveredState === null || isHovered || isNeighbor) ? 1.0 : 0.1;
+      // --- ALPHA LOGIC ---
+      if (this.tracePath.length > 0) {
+        // While tracing, only highlight path nodes (and current hover)
+        this.ctx.globalAlpha = (isInPath || isHovered) ? 1.0 : 0.1;
+      } else {
+        // Normal mode
+        this.ctx.globalAlpha = (this.hoveredState === null || isHovered || isNeighbor) ? 1.0 : 0.1;
+      }
       
       const sequentialIndex = this.visibleStateMap.get(state);
       this.drawNode(pos, sequentialIndex, isFinal, isHovered);

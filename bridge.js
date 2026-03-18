@@ -56,6 +56,7 @@ function buildFSM() {
         console.error("FSM Initialization Error:", err);
     }
 
+    // [[ UPDATE NI ALONXI: RUN FUNCTION ]]
     document.getElementById("run-trace-btn").onclick = function() {
         const inputStr = document.getElementById("trace-input").value;
         const resultBox = document.getElementById("trace-result-display");
@@ -75,11 +76,15 @@ function buildFSM() {
                 currentState = dfa._nextState(currentState, char);
                 path.push(currentState);
             }
+
+            window.viz.tracePath = path; 
+    window.viz.hoveredState = null; // Clear any accidental mouse hovers
+    window.viz.draw();
     
             // Display the result
             // We map the states to their visible indices (Q0, Q1, etc.)
             const pathLabels = path.map(state => `Q<sub>${window.viz.visibleStateMap.get(state)}</sub>`);
-            resultBox.innerHTML = `<strong>Path:</strong> ${pathLabels.join(" → ")}`;
+            resultBox.innerHTML = `<strong>Path:</strong> ${pathLabels.join(" → ")}`
             
             // Optional: Highlight the path in the visualizer
             // If you want the visualizer to show the current final state:

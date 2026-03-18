@@ -51,88 +51,27 @@
     <script src="./fsm.js"></script>
     <script src="./viz.js"></script>
     <script src="./ui.js"></script>
+    <script src="./bridge.js"></script>
 
     <script>
       /**
        * The Main Build Function
        * Scrapes the two bulk inputs and initializes the MonotonicDFA.
        */
-      function buildFSM() {
-        // --- 1. HARVEST FEATURES ---
-        const featureRaw = document.getElementById("feature-list-input").value;
-        const featureNames = featureRaw.split(',').map(f => f.trim()).filter(f => f);
 
-        if (featureNames.length === 0) {
-          console.error("Build failed: No features found in the input box.");
-          return;
-        }
-
-        // Map names to bits (1, 2, 4, 8...)
-        const FT = MonotonicDFA.encodeFEATURES(featureNames);
-
-        // --- 2. HARVEST ALPHABET ---
-        const mappingRaw = document.getElementById("alphabet-mapping-input").value.trim();
-        const lines = mappingRaw.split('\n');
-        const S_map = {};
-
-        lines.forEach(line => {
-          if (!line.includes(':')) return;
-          const [symbolPart, featuresPart] = line.split(':');
-          const symbol = symbolPart.trim();
-          const assignedFeatures = featuresPart.split(',').map(f => f.trim());
-
-          let symbolMask = 0;
-          assignedFeatures.forEach(feat => {
-            if (FT[feat]) {
-              symbolMask |= FT[feat]; // Combine bits
-            } else if (feat !== "") {
-              console.warn(`Feature "${feat}" assigned to "${symbol}" does not exist in the Feature List.`);
-            }
-          });
-          S_map[symbol] = symbolMask;
-        });
-
-        // --- 3. CONSOLE LOGGING (The Verification) ---
-        console.log("%c--- FSM DATA CAPTURE ---", "color: #10b981; font-weight: bold; font-size: 1.2rem;");
-        console.log("Unique Features:", featureNames);
-        console.log("Feature Table (FT):", FT);
-        console.log("Alphabet Map (S_map):", S_map);
-        console.log("States Generated:", 1 << featureNames.length);
-
-        // --- 4. EXECUTION ---
-        try {
-          // Initialize machine
-          const mono = MonotonicDFA.WithFeatures(featureNames, S_map, 0);
-          
-          // Re-initialize the visualizer
-          window.viz = new MonotonicVisualizer("fsmCanvas", mono, FT);
-          
-          document.getElementById("active-args-display").innerHTML = `
-            <strong>FSM Build Success</strong><hr>
-            Features: ${featureNames.length}<br>
-            Total States: ${1 << featureNames.length}
-          `;
-        } catch (err) {
-          console.error("FSM Initialization Error:", err);
-        }
-      }
-
-      // --- INITIALIZATION ON PAGE LOAD ---
-      
-      // 1. Initialize Draggable panels
-      if (typeof initUIExtensions === "function") {
-        initUIExtensions(); 
-      }
 
       // 2. Populate Default Bulk Data (The Schema)
       document.getElementById("feature-list-input").value = 
         "fiber, carbohydrates, protein, mt_100_Pesos, mt_500_Pesos";
 
       document.getElementById("alphabet-mapping-input").value = 
-`b: fiber, mt_100_Pesos
-o: carbohydrates, fiber, mt_500_Pesos
-a: carbohydrates, mt_100_Pesos
-r: protein, mt_100_Pesos`;
+        `b: fiber, mt_100_Pesos
+        o: carbohydrates, fiber, mt_500_Pesos
+        a: carbohydrates, mt_100_Pesos
+        r: protein, mt_100_Pesos`
+        .split('\n')
+        .map(line => line.trim())
+        .join('\n');
 
       // 3. Bind Buttons
       document.getElementById("generate-fsm-btn").onclick = buildFSM;

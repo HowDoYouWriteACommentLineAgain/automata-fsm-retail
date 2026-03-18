@@ -1,80 +1,58 @@
+function buildFSM() {
+    // --- 0. HARVEST FEATURES ---
+    const featureRaw = document.getElementById("feature-list-input").value;
+    const featureNames = featureRaw.split(',').map(f => f.trim()).filter(f => f);
 
-  // 1. Initialize the UI (Draggable/Minimize behavior)
-  // Note: Pass empty arrays because we are going to drive data from the DOM instead
-  if (typeof initUIExtensions === "function") {
-    initUIExtensions([], {}); 
-  }
+    // FIX: Length check should be 0, not -1
+    if (featureNames.length === 0) { 
+        console.error("Build failed: No features found in the input box.");
+        return;
+    }
 
-  /**
-   * THE SUBMISSION METHOD
-   * This gathers data from your panel rows and executes your working logic.
-   */
-  function submitFromPanels() {
-    const food = document.getElementById("food-input").value.trim() || "boar";
-    const rows = document.querySelectorAll(".feature-row");
-    
-    const featureNames = [];
-    const mappingData = [];
-
-    // Gather what the user typed in the panels
-    rows.forEach(row => {
-      const name = row.querySelector(".feat-name").value.trim();
-      const key = row.querySelector(".feat-key").value.trim();
-      if (name && key) {
-        featureNames.push(name);
-        mappingData.push({ key, name });
-      }
-    });
-
-    if (featureNames.length === 0) return;
-
-    // YOUR EXACT LOGIC (Now dynamic)
     const FT = MonotonicDFA.encodeFEATURES(featureNames);
 
+    // --- 1. HARVEST ALPHABET ---
+    const mappingRaw = document.getElementById("alphabet-mapping-input").value.trim();
+    const lines = mappingRaw.split('\n');
     const S_map = {};
-    mappingData.forEach(item => {
-      const bitmask = FT[item.name];
-      // Bitwise OR to allow multiple features per key (e.g., 'b' = fiber | 100 pesos)
-      S_map[item.key] = (S_map[item.key] || 0) | bitmask;
+
+    lines.forEach(line => {
+        if (!line.includes(':')) return;
+        const [symbolPart, featuresPart] = line.split(':');
+        const symbol = symbolPart.trim();
+        const assignedFeatures = featuresPart.split(',').map(f => f.trim());
+
+        // FIX: Start at 0 (empty bitmask), not -1
+        let symbolMask = 0; 
+        assignedFeatures.forEach(feat => {
+            if (FT[feat]) {
+                symbolMask |= FT[feat]; 
+            }
+        });
+        S_map[symbol] = symbolMask;
     });
 
-    // Initialize Engine and Visualizer
-    const mono = MonotonicDFA.WithFeatures(featureNames, S_map, 0);
-    window.viz = new MonotonicVisualizer("fsmCanvas", mono, FT);
-  }
+    // --- 2. CONSOLE LOGGING ---
+    console.log("%c--- FSM DATA CAPTURE ---", "color: #10b981; font-weight: bold;");
+    // FIX: Correct state calculation (1 << n)
+    const totalStates = 1 << featureNames.length; 
+    console.log("Unique Features:", featureNames);
+    console.log("S_map:", S_map);
+    console.log("Total States:", totalStates);
 
-  /**
-   * HELPER: Add a row to the UI panel
-   */
-  function addRow(name, key) {
-    const list = document.getElementById("ui-feature-list");
-    if (!list) return;
-    const div = document.createElement("div");
-    div.className = "feature-row";
-    div.style = "display: flex; gap: 5px; margin-bottom: 8px;";
-    div.innerHTML = `
-      <input type="text" value="${name}" class="feat-name" placeholder="fiber">
-      <input type="text" value="${key}" class="feat-key" placeholder="b" style="width: 40px;">
-    `;
-    list.appendChild(div);
-  }
-
-  // --- INITIAL SETUP ---
-  
-  // 1. Set the default Food
-  document.getElementById("food-input").value = "boar";
-
-  // 2. Populate the default rows in the panel
-  addRow("fiber", "b");
-  addRow("carbohydrates", "o");
-  addRow("protien", "r");
-  addRow("mt_100_Pesos", "a");
-
-  // 3. Link the Generate button to our new method
-  const genBtn = document.getElementById("generate-fsm-btn");
-  if (genBtn) {
-    genBtn.onclick = submitFromPanels;
-  }
-
-  // 4. Initial Run
-  submitFromPanels();
+    // --- 3. EXECUTION ---
+    try {
+        // FIX: Start state (Q0) should be 0, not -1
+        const mono = MonotonicDFA.WithFeatures(featureNames, S_map, 0); 
+        
+        window.viz = new MonotonicVisualizer("fsmCanvas", mono, FT);
+        
+        document.getElementById("active-args-display").innerHTML = `
+            <strong>FSM Build Success</strong><hr>
+            Features: ${featureNames.length}<br>
+            Total States: ${totalStates}
+        `;
+    } catch (err) {
+        console.error("FSM Initialization Error:", err);
+    }
+}

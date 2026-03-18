@@ -3,7 +3,8 @@ function initUIExtensions() {
   let highestZ = 100;
 
   // 1. Initialize Behavior & Initial Layout (Matching your Image)
-  const sidebarIds = ["tutorial-panel", "constructor-panel", "args-panel"];
+  // [[ UPDATE NI ALONXI, ADDED TRACE PANEL TO BE DRAGABBLE ]]
+  const sidebarIds = ["tutorial-panel", "constructor-panel", "args-panel", "trace-panel"]; 
   const vizId = "viz-panel";
 
   // Position Sidebar Panels (Stacked Left)

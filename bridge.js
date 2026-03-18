@@ -55,4 +55,39 @@ function buildFSM() {
     } catch (err) {
         console.error("FSM Initialization Error:", err);
     }
+
+    document.getElementById("run-trace-btn").onclick = function() {
+        const inputStr = document.getElementById("trace-input").value;
+        const resultBox = document.getElementById("trace-result-display");
+        
+        // Ensure we have an active FSM
+        if (!window.viz || !window.viz.dfa) {
+            resultBox.innerHTML = "<span style='color:red;'>Error: No FSM generated yet.</span>";
+            return;
+        }
+    
+        const dfa = window.viz.dfa;
+        let currentState = dfa.Q0;
+        let path = [currentState];
+    
+        try {
+            for (let char of inputStr) {
+                currentState = dfa._nextState(currentState, char);
+                path.push(currentState);
+            }
+    
+            // Display the result
+            // We map the states to their visible indices (Q0, Q1, etc.)
+            const pathLabels = path.map(state => `Q<sub>${window.viz.visibleStateMap.get(state)}</sub>`);
+            resultBox.innerHTML = `<strong>Path:</strong> ${pathLabels.join(" → ")}`;
+            
+            // Optional: Highlight the path in the visualizer
+            // If you want the visualizer to show the current final state:
+            window.viz.hoveredState = currentState;
+            window.viz.draw();
+    
+        } catch (err) {
+            resultBox.innerHTML = `<span style="color:red;">Error: ${err.message}</span>`;
+        }
+    };
 }

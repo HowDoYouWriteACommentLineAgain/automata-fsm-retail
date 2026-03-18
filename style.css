@@ -53,6 +53,21 @@ body {
   width: 320px;
 }
 
+#toggle-reach-btn {
+  width: 120px; /* Fixed width prevents jumping */
+  height: 36px; /* Fixed height for consistency */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin: 10px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  transition: background-color 0.2s, color 0.2s; /* Smooth color fade */
+}
+
 .handle {
   cursor: move;
   background: #f9fafb;

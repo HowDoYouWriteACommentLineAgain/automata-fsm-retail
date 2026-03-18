@@ -54,6 +54,20 @@ class MonotonicVisualizer {
 
   toggleReachability() {
     this.showOnlyReachable = !this.showOnlyReachable;
+    
+    const btn = document.getElementById("toggle-reach-btn");
+    if (btn) {
+      if (this.showOnlyReachable) {
+        btn.innerText = "View Mode";
+        btn.style.background = "#f9fafb"; // Light grey
+        btn.style.color = "#374151";
+      } else {
+        btn.innerText = "Full Mode";
+        btn.style.background = "#1D1D1D"; // Blue
+        btn.style.color = "#ffffff";
+      }
+    }
+  
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.draw();
   }

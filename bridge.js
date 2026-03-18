@@ -50,8 +50,11 @@ function buildFSM() {
         document.getElementById("active-args-display").innerHTML = `
             <strong>FSM Build Success</strong><hr>
             Features: ${featureNames.length}<br>
-            Total States: ${totalStates}
-        `;
+            Total States: ${totalStates}`
+            if (window.viz) {
+                const btn = document.getElementById("toggle-reach-btn");
+                btn.innerText = window.viz.showOnlyReachable ? "View Mode" : "Full Mode";
+            };
     } catch (err) {
         console.error("FSM Initialization Error:", err);
     }

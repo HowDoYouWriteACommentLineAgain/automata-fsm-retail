@@ -11,7 +11,29 @@
       <div style="margin-left: 20px;color: #6b7280;font-size: 0.85rem;font-weight: 500;">Retail Automata Dashboard</div>
     </div>
 
-    <div id="constructor-panel" class="panel">
+    <div id="tutorial-panel" class="panel draggable-panel">
+      <div class="handle">::: HOW IT WORKS</div>
+      <div class="panel-content" style="font-size: 0.85rem; line-height: 1.4; color: #374151;">
+        <p><strong>1. Feature Encoding:</strong> Each feature is a unique bit. If you have 3 features:</p>
+        <ul style="padding-left: 20px; margin: 5px 0;">
+          <li>Feature A = 1 ($2^0$)</li>
+          <li>Feature B = 2 ($2^1$)</li>
+          <li>Feature C = 4 ($2^2$)</li>
+        </ul>
+        
+        <p><strong>2. State Calculation:</strong> Your current state is the sum of bits. 
+          If you have eaten A and C, your state is <strong>5</strong> ($1 + 4$).</p>
+        
+        <p><strong>3. Monotonic Transition:</strong> Transitions use the <code>OR (|)</code> operator. 
+          You can only <em>add</em> features, never lose them. Once a bit is 1, it stays 1.</p>
+          
+        <div style="background: #f3f4f6; padding: 8px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
+          NextState = CurrentState | SymbolMask
+        </div>
+      </div>
+    </div>
+
+    <div id="constructor-panel" class="panel draggable-panel">
       <div class="handle">::: FSM BULK CONSTRUCTOR</div>
       <div class="panel-content">
         <label>1. Define Features (Comma Separated):</label>
@@ -28,7 +50,7 @@
       </div>
     </div>
 
-    <div id="args-panel" class="panel">
+    <div id="args-panel" class="panel draggable-panel">
       <div class="handle">::: CURRENT ARGUMENTS</div>
       <div class="panel-content">
         <div id="active-args-display">
@@ -37,7 +59,7 @@
       </div>
     </div>
 
-    <div id="viz-panel" class="panel" style="display: flex; flex-direction: column;">
+    <div id="viz-panel" class="panel draggable-panel" style="display: flex; flex-direction: column;">
       <div class="handle">::: FSM VISUALIZER</div>
       <div id="viz-container" style="flex-grow: 1; min-height: 0; background: white; position: relative;">
         <button id="toggle-reach-btn" style="cursor: pointer; padding: 6px 12px; margin: 10px;">

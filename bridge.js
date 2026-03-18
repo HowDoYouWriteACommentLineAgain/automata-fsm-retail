@@ -78,21 +78,35 @@ function buildFSM() {
             }
 
             window.viz.tracePath = path; 
-    window.viz.hoveredState = null; // Clear any accidental mouse hovers
-    window.viz.draw();
+            window.viz.hoveredState = null; // Clear any accidental mouse hovers
+            window.viz.draw();
     
             // Display the result
             // We map the states to their visible indices (Q0, Q1, etc.)
             const pathLabels = path.map(state => `Q<sub>${window.viz.visibleStateMap.get(state)}</sub>`);
             resultBox.innerHTML = `<strong>Path:</strong> ${pathLabels.join(" → ")}`
             
-            // Optional: Highlight the path in the visualizer
-            // If you want the visualizer to show the current final state:
+            // Viz shows the current final state:
             window.viz.hoveredState = currentState;
             window.viz.draw();
     
         } catch (err) {
             resultBox.innerHTML = `<span style="color:red;">Error: ${err.message}</span>`;
         }
+    };
+
+    // [[ UPDATE NI ALONXI: CLEAR TRACE FUNCTION ]]
+    document.getElementById("clear-trace-btn").onclick = function() {
+        if (window.viz) {
+            window.viz.tracePath = []; // Empty the path array
+            window.viz.draw();         // Redraw to restore normal hover mode
+        }
+        
+        const resultBox = document.getElementById("trace-result-display");
+        if (resultBox) {
+            resultBox.innerHTML = '<span style="color:#94a3b8;">Path will appear here...</span>';
+        }
+        
+        document.getElementById("trace-input").value = "";
     };
 }

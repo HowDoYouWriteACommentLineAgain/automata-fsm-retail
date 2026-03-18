@@ -16,13 +16,13 @@
       <div class="panel-content" style="font-size: 0.85rem; line-height: 1.4; color: #374151;">
         <p><strong>1. Feature Encoding:</strong> Each feature is a unique bit. If you have 3 features:</p>
         <ul style="padding-left: 20px; margin: 5px 0;">
-          <li>Feature A = 1 ($2^0$)</li>
-          <li>Feature B = 2 ($2^1$)</li>
-          <li>Feature C = 4 ($2^2$)</li>
+          <li>Feature A = 1 (2⁰)</li>
+          <li>Feature B = 2 (2¹)</li>
+          <li>Feature C = 4 (2²)</li>
         </ul>
         
         <p><strong>2. State Calculation:</strong> Your current state is the sum of bits. 
-          If you have eaten A and C, your state is <strong>5</strong> ($1 + 4$).</p>
+          If you have eaten A and C, your state is <strong>5</strong> (1 + 4).</p>
         
         <p><strong>3. Monotonic Transition:</strong> Transitions use the <code>OR (|)</code> operator. 
           You can only <em>add</em> features, never lose them. Once a bit is 1, it stays 1.</p>

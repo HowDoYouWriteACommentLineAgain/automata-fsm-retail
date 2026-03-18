@@ -79,19 +79,24 @@ class MonotonicVisualizer {
     this.draw();
   }
 
-  draw() {
+draw() {
     const { width, height } = this.canvas;
     if (width === 0 || height === 0) return; 
     
-    // Ghost Killer: Solid background wipe
     this.ctx.fillStyle = "#ffffff";
     this.ctx.fillRect(0, 0, width, height);
     
     this.stateCoords.clear();
 
+    // Determine active states
     const activeStates = this.showOnlyReachable 
-      ? Array.from(this.getReachableStates()) 
-      : this.dfa.Q;
+      ? Array.from(this.getReachableStates()).sort((a, b) => a - b) 
+      : [...this.dfa.Q].sort((a, b) => a - b);
+
+    this.visibleStateMap = new Map();
+    activeStates.forEach((state, index) => {
+      this.visibleStateMap.set(state, index);
+    });
 
     const layers = {};
     activeStates.forEach(state => {
@@ -102,10 +107,15 @@ class MonotonicVisualizer {
 
     const layerKeys = Object.keys(layers).sort((a, b) => a - b);
     
+    // ADJUSTED: Padding for nodes is increased to move them up
+    // previous: this.padding = 40;
+    const nodeYPadding = 60; 
+
     layerKeys.forEach((level, lIdx) => {
       const statesInLayer = layers[level];
       const xStep = width / (statesInLayer.length + 1);
-      const y = this.padding + (lIdx * (height - 2 * this.padding) / Math.max(1, layerKeys.length - 1));
+      // Nodes are now compressed vertically, giving more space at the bottom
+      const y = nodeYPadding + (lIdx * (height - 3 * nodeYPadding) / Math.max(1, layerKeys.length - 1));
       statesInLayer.forEach((state, sIdx) => {
         this.stateCoords.set(state, { x: xStep * (sIdx + 1), y });
       });
@@ -129,9 +139,8 @@ class MonotonicVisualizer {
         const endPos = this.stateCoords.get(nextState);
         
         if (endPos && nextState !== state) {
-          // Arrow Highlight Logic: Fades if not outgoing from hovered node
           if (this.hoveredState !== null) {
-            this.ctx.globalAlpha = (state === this.hoveredState) ? 0.9 : 0.03;
+            this.ctx.globalAlpha = (state === this.hoveredState) ? 0.9 : 0.05;
           } else {
             this.ctx.globalAlpha = 0.4;
           }
@@ -149,21 +158,70 @@ class MonotonicVisualizer {
       const isHovered = this.hoveredState === state;
       const isNeighbor = neighbors.has(state);
 
-      if (this.hoveredState !== null) {
-        this.ctx.globalAlpha = (isHovered || isNeighbor) ? 1.0 : 0.1;
-      } else {
-        this.ctx.globalAlpha = 1.0;
-      }
+      this.ctx.globalAlpha = (this.hoveredState === null || isHovered || isNeighbor) ? 1.0 : 0.1;
       
-      this.drawNode(pos, state, isFinal, isHovered);
+      const sequentialIndex = this.visibleStateMap.get(state);
+      this.drawNode(pos, sequentialIndex, isFinal, isHovered);
     });
 
-    // Overlays
     this.ctx.globalAlpha = 1.0;
     if (this.hoveredState !== null) this.drawTooltip();
+    
+    // Legend now uses its own defined padding, separate from nodes
     this.drawAlphabetLegend();
   }
 
+  // --- MODIFIED LEGEND AND NODE DRAWING FOR SPACING ---
+
+  drawNode(pos, index, isFinal, isHovered) {
+    this.ctx.beginPath();
+    this.ctx.arc(pos.x, pos.y, this.nodeRadius, 0, Math.PI * 2);
+    this.ctx.fillStyle = isHovered ? '#f1f5f9' : '#fff';
+    this.ctx.strokeStyle = isHovered ? '#3b82f6' : '#1e293b';
+    this.ctx.lineWidth = isHovered ? 3 : 2;
+    this.ctx.fill();
+    this.ctx.stroke();
+
+    if (isFinal) {
+      this.ctx.beginPath();
+      this.ctx.arc(pos.x, pos.y, this.nodeRadius - 4, 0, Math.PI * 2);
+      this.ctx.stroke();
+    }
+
+    // RENDER Q_subscript
+    this.ctx.fillStyle = '#1e293b';
+    this.ctx.textAlign = 'center';
+    
+    // Draw the "Q"
+    this.ctx.font = 'bold 14px serif';
+    const qWidth = this.ctx.measureText('Q').width;
+    this.ctx.fillText('Q', pos.x - 4, pos.y + 4);
+    
+    // Draw the Index as Subscript
+    this.ctx.font = 'bold 9px serif';
+    this.ctx.fillText(index, pos.x + (qWidth/2) + 2, pos.y + 8);
+  }
+
+  drawAlphabetLegend() {
+    const symbols = Object.keys(this.dfa.S_map);
+    // ADJUSTED: Increase bottom padding for the legend
+    const bottomPadding = 45; // previous: 20
+    const xOffset = 20; 
+    let x = xOffset;
+    let y = this.canvas.height - bottomPadding;
+
+    symbols.forEach((char) => {
+      const color = this.symbolColors[char] || this.symbolColors.default;
+      this.ctx.fillStyle = color;
+      this.ctx.fillRect(x, y - 12, 12, 12);
+      this.ctx.fillStyle = "#4b5563";
+      this.ctx.font = "12px monospace";
+      this.ctx.textAlign = "left";
+      this.ctx.fillText(`Symbol: ${char}`, x + 18, y - 2);
+      x += 100;
+    });
+  }
+ 
   drawCurvedArrow(from, to, isLongJump, color) {
     const angle = Math.atan2(to.y - from.y, to.x - from.x);
     const dist = Math.sqrt((to.x - from.x)**2 + (to.y - from.y)**2);
@@ -197,46 +255,7 @@ class MonotonicVisualizer {
     this.ctx.fill();
     this.ctx.restore();
   }
-
-  drawNode(pos, state, isFinal, isHovered) {
-    this.ctx.beginPath();
-    this.ctx.arc(pos.x, pos.y, this.nodeRadius, 0, Math.PI * 2);
-    this.ctx.fillStyle = isHovered ? '#f1f5f9' : '#fff';
-    this.ctx.strokeStyle = isHovered ? '#3b82f6' : '#1e293b';
-    this.ctx.lineWidth = isHovered ? 3 : 2;
-    this.ctx.fill();
-    this.ctx.stroke();
-
-    if (isFinal) {
-      this.ctx.beginPath();
-      this.ctx.arc(pos.x, pos.y, this.nodeRadius - 4, 0, Math.PI * 2);
-      this.ctx.stroke();
-    }
-
-    this.ctx.fillStyle = '#1e293b';
-    this.ctx.font = 'bold 12px monospace';
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText(state, pos.x, pos.y + 4);
-  }
-
-  drawAlphabetLegend() {
-    const symbols = Object.keys(this.dfa.S_map);
-    const padding = 20;
-    let x = padding;
-    let y = this.canvas.height - padding;
-
-    symbols.forEach((char) => {
-      const color = this.symbolColors[char] || this.symbolColors.default;
-      this.ctx.fillStyle = color;
-      this.ctx.fillRect(x, y - 12, 12, 12);
-      this.ctx.fillStyle = "#4b5563";
-      this.ctx.font = "12px monospace";
-      this.ctx.textAlign = "left";
-      this.ctx.fillText(`Symbol: ${char}`, x + 18, y - 2);
-      x += 100;
-    });
-  }
-
+  
   drawTooltip() {
     const features = MonotonicDFA.decodeFEATURES(this.hoveredState, this.FT);
     const txt = features.length > 0 ? features.join(' + ') : "Start (0)";

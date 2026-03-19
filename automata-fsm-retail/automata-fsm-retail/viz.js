@@ -15,11 +15,9 @@ class MonotonicVisualizer {
     this.stateCoords = new Map();
     this.visibleStateMap = new Map();
 
-    // Trace state (new)
     this.traceSteps = [];
     this.traceActive = false;
 
-    // Auto-assign colors to symbols from a palette
     this._colorPalette = [
       "#6366f1",
       "#f97316",
@@ -47,7 +45,6 @@ class MonotonicVisualizer {
     return this._symbolColorMap[sym];
   }
 
-  // Called by the trace panel on every keystroke
   setTrace(traceSteps) {
     this.traceSteps = traceSteps;
     this.traceActive = traceSteps.length > 0;
@@ -165,9 +162,8 @@ class MonotonicVisualizer {
 
     const symbols = Object.keys(this.dfa.S_map);
 
-    // Build trace sets for highlighting
     const traceStateSet = new Set();
-    const traceEdgeSet = new Set(); // "fromState:token:toState"
+    const traceEdgeSet = new Set();
     let currentTraceState = null;
 
     if (this.traceActive && this.traceSteps.length > 0) {
@@ -249,7 +245,6 @@ class MonotonicVisualizer {
   drawNode(pos, index, isFinal, isHovered, isCurrent = false) {
     const r = this.nodeRadius;
 
-    // Glow ring for current trace state
     if (isCurrent) {
       this.ctx.beginPath();
       this.ctx.arc(pos.x, pos.y, r + 7, 0, Math.PI * 2);
@@ -282,7 +277,6 @@ class MonotonicVisualizer {
       this.ctx.stroke();
     }
 
-    // Q subscript label (your updated style)
     this.ctx.fillStyle = isCurrent ? "#1d4ed8" : "#1e293b";
     this.ctx.textAlign = "center";
     this.ctx.font = `bold 14px serif`;

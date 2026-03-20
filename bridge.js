@@ -161,8 +161,9 @@ function syncGroceryStore() {
 
     shelf.innerHTML = ""; 
     const tokens = Object.keys(window.currentDFA.S_map);
+    const S_map = window.currentDFA.S_map; // Reference to the mapping
+    const FT = window.currentFT; // Reference to feature table
 
-    // Dummy Data Helpers
     const getPrice = (name) => (name.length * 1.5 + 2.99).toFixed(2);
     const getDistributor = (name) => {
         const distros = ["Global Harvest", "Atlas Foods", "Peak Logistics", "EcoSource", "Prime Route"];
@@ -173,6 +174,9 @@ function syncGroceryStore() {
         const price = getPrice(token);
         const distributor = getDistributor(token);
         const displayName = token.charAt(0).toUpperCase() + token.slice(1);
+        
+        // Lookup the features for this specific token
+        const tokenFeatures = MonotonicDFA.decodeFEATURES(S_map[token], FT);
 
         const card = document.createElement("div");
         card.className = "item-card hip-card";
@@ -181,6 +185,11 @@ function syncGroceryStore() {
             <div class="card-info">
                 <span class="item-name">${displayName}</span>
                 <span class="item-distro">${distributor}</span>
+                
+                <div class="card-tags" style="display:flex; flex-wrap:wrap; justify-items:start; gap:4px; margin:4px 0;">
+                    ${tokenFeatures.map(f => `<span class="tag-chip tiny" style="font-size:6px; padding:1px 5px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; border-radius:4px; text-transform:uppercase; font-weight:700;">${f}</span>`).join('')}
+                </div>
+
                 <div class="card-footer">
                     <span class="item-price">$${price}</span>
                     <span class="add-plus">+</span>
@@ -196,7 +205,7 @@ function syncGroceryStore() {
         };
         shelf.appendChild(card);
     });
-} 
+}
 
 /**
  * Updates the Cart display area to show tokens as styled badges with remove buttons.

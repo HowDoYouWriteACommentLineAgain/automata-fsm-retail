@@ -384,10 +384,14 @@ body {
 }
 
 .item-card:hover {
-  background: #3b82f6;
+  background:rgba(15,23,42,0.88);;
   color: white;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.item-card:hover > * > *{
+  color: white;
 }
 
 .cart-section {

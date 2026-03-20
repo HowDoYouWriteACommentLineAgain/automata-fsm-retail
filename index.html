@@ -180,6 +180,26 @@
         >
           Toggle: All / Reachable
         </button>
+
+        <button
+          id="toggle-self-loops-btn"
+          style="
+            cursor: pointer;
+            padding: 5px 10px;
+            margin: 8px;
+            position: absolute;
+            top: 30px;
+            left: 0;
+            z-index: 5;
+            background: #eff6ff;
+            color: #2563eb;
+            border: 1px solid #bfdbfe;
+            border-radius: 5px;
+            font-size: 11px;
+          "
+        >
+          Toggle: self-loops
+        </button>
         <canvas id="fsmCanvas"></canvas>
       </div>
       <div id="viz-resizer"></div>
@@ -239,6 +259,11 @@
       document.getElementById("toggle-reach-btn").onclick = () => {
         if (window.viz) window.viz.toggleReachability();
       };
+
+      document.getElementById("toggle-self-loops-btn").onclick = () => {
+        if (window.viz) window.viz.toggleSelfLoops();
+      };
+
 
       document.getElementById("trace-input").addEventListener("input", (e) => {
         runTrace(e.target.value);

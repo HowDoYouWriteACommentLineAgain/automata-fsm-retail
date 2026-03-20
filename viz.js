@@ -252,6 +252,14 @@ class MonotonicVisualizer {
       }
     }
 
+    const startState = this.dfa.Q0;
+    const startPos = this.stateCoords.get(startState);
+
+    if (startPos) {
+        // We draw an arrow coming from the left of the start node
+        this.drawEntryArrow(startPos);
+    }
+
     // Draw nodes
     this.stateCoords.forEach((pos, state) => {
       const isFinal = this.dfa.F.includes(state);
@@ -490,4 +498,43 @@ drawSelfLoop(pos, color, charIndex, lineWidth = 1.5) {
       this.ctx.fillText(`· ${f}`, bx + pad, by + pad + lineH * (2 + i) + 2);
     });
   }
+
+  drawEntryArrow(pos) {
+    const r = this.nodeRadius;
+    const ctx = this.ctx;
+    const arrowLength = 30;
+    const gap = 5;
+
+    // The arrow points from (pos.x - arrowLength - r) to (pos.x - r - gap)
+    const startX = pos.x - r - arrowLength - gap;
+    const startY = pos.y;
+    const endX = pos.x - r - gap;
+    const endY = pos.y;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.strokeStyle = "#1e293b"; // Matching your node border color
+    ctx.lineWidth = 2;
+    
+    // Draw the straight line segment
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    // Draw the arrowhead at the end point
+    ctx.fillStyle = "#1e293b";
+    ctx.beginPath();
+    ctx.moveTo(endX, endY);
+    ctx.lineTo(endX - 8, endY - 4);
+    ctx.lineTo(endX - 8, endY + 4);
+    ctx.fill();
+
+    // Optional: Add a small "Start" label above the arrow
+    ctx.fillStyle = "#64748b";
+    ctx.font = "bold 10px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("START", startX + arrowLength / 2, startY - 8);
+
+    ctx.restore();
+}
 }

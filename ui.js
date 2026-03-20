@@ -20,10 +20,6 @@ function initUIExtensions() {
             p.style.zIndex = highestZ;
             
             // Set default sizes for when they are expanded
-            if (id === "grocery-panel") {
-                p.style.width = "320px";
-                p.style.height = "500px";
-            }
             makeDraggable(p);
         }
     });
@@ -91,7 +87,6 @@ function makeDraggable(el) {
     const handle = el.querySelector(".handle");
     if (!handle) return;
 
-    // Bring to front on ANY click within the panel (Capture Phase)
     el.addEventListener("mousedown", () => {
         highestZ++;
         el.style.zIndex = highestZ;
@@ -110,8 +105,23 @@ function makeDraggable(el) {
             pos3 = e.clientX;
             pos4 = e.clientY;
             
-            el.style.top = Math.max(HEADER_HEIGHT, el.offsetTop - pos2) + "px";
-            el.style.left = Math.max(0, el.offsetLeft - pos1) + "px";
+            // 1. Calculate intended new positions
+            let newTop = el.offsetTop - pos2;
+            let newLeft = el.offsetLeft - pos1;
+
+            // 2. Calculate Boundaries
+            // maxX/maxY ensure the window doesn't go off the right/bottom
+            const maxX = window.innerWidth - el.offsetWidth;
+            const maxY = window.innerHeight - el.offsetHeight;
+
+            // 3. Clamp the values
+            // We use Math.max(HEADER_HEIGHT, ...) to keep it below the header
+            // We use Math.min(..., maxX/maxY) to keep it inside the screen
+            const finalTop = Math.min(Math.max(HEADER_HEIGHT, newTop), maxY);
+            const finalLeft = Math.min(Math.max(0, newLeft), maxX);
+
+            el.style.top = finalTop + "px";
+            el.style.left = finalLeft + "px";
         };
 
         document.onmouseup = () => {
@@ -150,7 +160,7 @@ function setupRecallButton() {
 
     const recallBtn = document.createElement("button");
     recallBtn.id = "recall-btn";
-    recallBtn.innerText = "⟲ Reset Layout";
+    recallBtn.innerText = "⟲ Reset Layout and minimize";
     recallBtn.style = `margin-left: 10px; padding: 5px 12px; font-size: 12px; font-weight: 600; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: all 0.2s;`;
 
     recallBtn.onmouseover = () => { recallBtn.style.background = "#e2e8f0"; };
@@ -169,6 +179,7 @@ function resetPanelPositions() {
         if (p) {
             p.style.top = 80 + i * 42 + "px";
             p.style.left = "20px";
+            p.classList.toggle("minimized", !("minimized" in p.classList))
             // if (id === "grocery-panel") {
             //     p.style.width = "320px";
             //     p.style.height = "500px";

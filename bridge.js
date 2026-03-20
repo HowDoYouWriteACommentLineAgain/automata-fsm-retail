@@ -196,28 +196,6 @@ function syncGroceryStore() {
         };
         shelf.appendChild(card);
     });
-
-    const checkoutBtn = document.getElementById("checkout-btn");
-
-  if (checkoutBtn) {
-      checkoutBtn.onclick = () => {
-          const traceInput = document.getElementById("trace-input");
-          
-          // 1. Clear the text input
-          traceInput.value = "";
-          
-          // 2. Tell the DFA to reset to Q0 (Start State)
-          if (typeof runTrace === 'function') {
-              runTrace(""); 
-          }
-          
-          // 3. Refresh the Basket UI to show "Empty"
-          updateCartUI();
-          
-          // Optional: Add a little "Success" feedback
-          console.log("Order Completed: FSM Reset to Q0");
-      };
-  }
 } 
 
 /**

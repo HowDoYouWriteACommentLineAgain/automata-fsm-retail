@@ -97,6 +97,7 @@ function runTrace(inputStr) {
 }
 
 function renderTraceSteps(trace) {
+  updateCartUI();
   const container = document.getElementById("trace-steps");
   if (!container) return;
 
@@ -156,53 +157,68 @@ function renderTraceSteps(trace) {
 function syncGroceryStore() {
     const shelf = document.getElementById("grocery-shelf");
     const traceInput = document.getElementById("trace-input");
-    
     if (!window.currentDFA || !shelf) return;
 
-    shelf.innerHTML = ""; // Clear the "Generate FSM" message
-    
-    // Get the tokens from the alphabet mapping
+    shelf.innerHTML = ""; 
     const tokens = Object.keys(window.currentDFA.S_map);
 
-    tokens.forEach(token => {
-        const btn = document.createElement("button");
-        btn.innerText = token;
-        btn.style = `
-            padding: 5px 10px; 
-            background: white; 
-            border: 1px solid #d1d5db; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-size: 12px; 
-            transition: all 0.2s;
-        `;
-        
-        // Hover effects
-        btn.onmouseover = () => btn.style.borderColor = "#2563eb";
-        btn.onmouseout = () => btn.style.borderColor = "#d1d5db";
+    // Dummy Data Helpers
+    const getPrice = (name) => (name.length * 1.5 + 2.99).toFixed(2);
+    const getDistributor = (name) => {
+        const distros = ["Global Harvest", "Atlas Foods", "Peak Logistics", "EcoSource", "Prime Route"];
+        return distros[name.length % distros.length];
+    };
 
-        btn.onclick = () => {
-            // Add token to the trace input (space separated)
+    tokens.forEach(token => {
+        const price = getPrice(token);
+        const distributor = getDistributor(token);
+        const displayName = token.charAt(0).toUpperCase() + token.slice(1);
+
+        const card = document.createElement("div");
+        card.className = "item-card hip-card";
+        card.innerHTML = `
+            <div class="card-image-placeholder">🛒</div>
+            <div class="card-info">
+                <span class="item-name">${displayName}</span>
+                <span class="item-distro">${distributor}</span>
+                <div class="card-footer">
+                    <span class="item-price">$${price}</span>
+                    <span class="add-plus">+</span>
+                </div>
+            </div>
+        `;
+
+        card.onclick = () => {
             const current = traceInput.value.trim();
             traceInput.value = current ? `${current} ${token}` : token;
-            
-            // EXECUTE: Call your team's runTrace function
-            if (typeof runTrace === 'function') {
-                runTrace(traceInput.value);
-            }
-            
+            if (typeof runTrace === 'function') runTrace(traceInput.value);
             updateCartUI();
         };
-        shelf.appendChild(btn);
+        shelf.appendChild(card);
     });
 
-    // Reset logic
-    document.getElementById("checkout-btn").onclick = () => {
-        traceInput.value = "";
-        if (typeof runTrace === 'function') runTrace("");
-        updateCartUI();
-    };
-}
+    const checkoutBtn = document.getElementById("checkout-btn");
+
+  if (checkoutBtn) {
+      checkoutBtn.onclick = () => {
+          const traceInput = document.getElementById("trace-input");
+          
+          // 1. Clear the text input
+          traceInput.value = "";
+          
+          // 2. Tell the DFA to reset to Q0 (Start State)
+          if (typeof runTrace === 'function') {
+              runTrace(""); 
+          }
+          
+          // 3. Refresh the Basket UI to show "Empty"
+          updateCartUI();
+          
+          // Optional: Add a little "Success" feedback
+          console.log("Order Completed: FSM Reset to Q0");
+      };
+  }
+} 
 
 /**
  * Updates the Cart display area to show tokens as styled badges with remove buttons.
@@ -231,21 +247,29 @@ function updateCartUI() {
 /**
  * Removes a specific token from the string and re-runs the trace.
  */
-function removeItem(index) {
+/**
+ * Removes a specific token from the string and re-runs the trace.
+ * This is attached to window so the 'onclick' in the HTML can find it.
+ * Keeps it at the window scope
+ */
+window.removeItem = function(index) {
     const traceInput = document.getElementById("trace-input");
+    if (!traceInput) return;
+
+    // 1. Get current tokens as an array
     let tokens = traceInput.value.split(/\s+/).filter(t => t.length > 0);
     
-    // Remove the item at the specific index
+    // 2. Remove the specific item at the clicked index
     tokens.splice(index, 1);
     
-    // Update the input field
+    // 3. Update the input field with the remaining tokens
     traceInput.value = tokens.join(" ");
     
-    // Re-run the DFA trace from the beginning with the new sequence
+    // 4. Trigger the DFA to recalculate the state from Q0
     if (typeof runTrace === 'function') {
         runTrace(traceInput.value);
     }
     
-    // Refresh the UI
+    // 5. Refresh the UI badges
     updateCartUI();
-}
+};

@@ -185,33 +185,34 @@
       <div id="viz-resizer"></div>
     </div>
 
-    <div id="grocery-panel" class="panel draggable-panel">
-      <div class="handle">::: GROCERY STORE</div>
-      <div class="panel-content">
-        <div style="margin-bottom: 10px;">
-          <label style="font-size: 0.7rem; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
-            Available Items (Alphabet)
-          </label>
-          <div id="grocery-shelf" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; padding: 10px; background: #f9fafb; border-radius: 6px; border: 1px dashed #d1d5db; min-height: 50px;">
-            <span style="color: #9ca3af; font-size: 11px; font-style: italic;">Generate FSM to stock shelves...</span>
-          </div>
+<div id="grocery-panel" class="panel draggable-panel hip-grocery-ui">
+  <div class="handle">::: MARKETPLACE</div>
+  <div class="panel-content">
+    <div class="grocery-section">
+      <label class="section-label">Fresh Aisles</label>
+      <div id="grocery-shelf" class="aisle-grid">
         </div>
-
-        <label style="font-size: 0.7rem; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
-          Your Shopping Cart
-        </label>
-        <div id="cart-display" style="margin-top: 8px; font-family: monospace; font-size: 12px; min-height: 44px; padding: 10px; background: #fff; border: 1px solid #e5e7eb; border-radius: 4px; display: flex; flex-wrap: wrap; gap: 4px;">
-          <span style="color: #9ca3af;">Cart is empty.</span>
-        </div>
-
-        <div style="display: flex; gap: 8px; margin-top: 12px;">
-          <button id="checkout-btn" class="primary-btn" style="flex: 2; background: #10b981; border: none; height: 35px; color: white; font-weight: bold; border-radius: 4px; cursor: pointer;">
-            CHECKOUT / RESET
-          </button>
-        </div>
-      </div>
-      <div class="resizer" id="grocery-resizer"></div>
     </div>
+
+    <div class="cart-section">
+      <div class="cart-header">
+        <label class="section-label">Your Basket</label>
+        <span id="cart-count" class="count-badge">0</span>
+      </div>
+      <div id="cart-display" class="basket-container">
+        <span class="empty-msg">Your basket is empty...</span>
+      </div>
+      
+      <div class="cart-actions">
+        <button id="checkout-btn" class="checkout-btn">
+          <span>Complete Order</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="grocery-resizer" class="resizer-handle"></div>
+</div>
 
     <script src="./fsm.js"></script>
     <script src="./viz.js"></script>

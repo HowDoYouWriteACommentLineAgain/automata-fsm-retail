@@ -54,6 +54,9 @@ function buildFSM() {
 
     window.viz = new MonotonicVisualizer("fsmCanvas", mono, FT);
 
+    syncGroceryStore()
+    updateCartUI()
+
     document.getElementById("active-args-display").innerHTML = `
             <strong>FSM Built</strong>
             <hr style="margin:6px 0; border:0; border-top:1px solid #e5e7eb;">
@@ -148,4 +151,101 @@ function renderTraceSteps(trace) {
   }
 
   container.innerHTML = html;
+}
+
+function syncGroceryStore() {
+    const shelf = document.getElementById("grocery-shelf");
+    const traceInput = document.getElementById("trace-input");
+    
+    if (!window.currentDFA || !shelf) return;
+
+    shelf.innerHTML = ""; // Clear the "Generate FSM" message
+    
+    // Get the tokens from the alphabet mapping
+    const tokens = Object.keys(window.currentDFA.S_map);
+
+    tokens.forEach(token => {
+        const btn = document.createElement("button");
+        btn.innerText = token;
+        btn.style = `
+            padding: 5px 10px; 
+            background: white; 
+            border: 1px solid #d1d5db; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 12px; 
+            transition: all 0.2s;
+        `;
+        
+        // Hover effects
+        btn.onmouseover = () => btn.style.borderColor = "#2563eb";
+        btn.onmouseout = () => btn.style.borderColor = "#d1d5db";
+
+        btn.onclick = () => {
+            // Add token to the trace input (space separated)
+            const current = traceInput.value.trim();
+            traceInput.value = current ? `${current} ${token}` : token;
+            
+            // EXECUTE: Call your team's runTrace function
+            if (typeof runTrace === 'function') {
+                runTrace(traceInput.value);
+            }
+            
+            updateCartUI();
+        };
+        shelf.appendChild(btn);
+    });
+
+    // Reset logic
+    document.getElementById("checkout-btn").onclick = () => {
+        traceInput.value = "";
+        if (typeof runTrace === 'function') runTrace("");
+        updateCartUI();
+    };
+}
+
+/**
+ * Updates the Cart display area to show tokens as styled badges with remove buttons.
+ */
+function updateCartUI() {
+    const traceInput = document.getElementById("trace-input");
+    const cartDisplay = document.getElementById("cart-display");
+    if (!traceInput || !cartDisplay) return;
+
+    const tokens = traceInput.value.split(/\s+/).filter(t => t.length > 0);
+
+    if (tokens.length === 0) {
+        cartDisplay.innerHTML = '<span style="color: #9ca3af; font-style: italic;">Cart is empty.</span>';
+        return;
+    }
+
+    // Map tokens to badges with an onclick event to remove specific indices
+    cartDisplay.innerHTML = tokens.map((t, index) => `
+        <span style="background: #ecfdf5; color: #065f46; padding: 3px 10px; border-radius: 12px; border: 1px solid #a7f3d0; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+            ${t}
+            <b onclick="removeItem(${index})" style="cursor:pointer; color:#059669; font-size: 14px; line-height: 1;">×</b>
+        </span>
+    `).join("");
+}
+
+/**
+ * Removes a specific token from the string and re-runs the trace.
+ */
+function removeItem(index) {
+    const traceInput = document.getElementById("trace-input");
+    let tokens = traceInput.value.split(/\s+/).filter(t => t.length > 0);
+    
+    // Remove the item at the specific index
+    tokens.splice(index, 1);
+    
+    // Update the input field
+    traceInput.value = tokens.join(" ");
+    
+    // Re-run the DFA trace from the beginning with the new sequence
+    if (typeof runTrace === 'function') {
+        runTrace(traceInput.value);
+    }
+    
+    // Refresh the UI
+    updateCartUI();
 }

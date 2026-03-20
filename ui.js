@@ -7,6 +7,7 @@ function initUIExtensions() {
     "constructor-panel",
     "args-panel",
     "trace-panel",
+    "grocery-panel"
   ];
   const vizId = "viz-panel";
 

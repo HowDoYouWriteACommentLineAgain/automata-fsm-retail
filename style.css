@@ -33,13 +33,12 @@ body {
   z-index: 100;
   min-width: 240px;
 
-  transition: 
+  transition:
     width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
     transform 0.2s ease-out,
     opacity 0.2s ease;
-  
-  /* Required for smooth height transitions */
+
   overflow: hidden;
 }
 
@@ -124,8 +123,8 @@ body {
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  z-index: 10; /* Lower than other panels (usually 100+) */
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  z-index: 10;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -134,15 +133,14 @@ body {
   position: relative;
   min-height: 0;
   background: white;
-  padding: 20px; 
-  box-sizing: border-box; 
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 #fsmCanvas {
   display: block;
   width: 100%;
   height: 100%;
-  /* This ensures the canvas respects the container's padding */
 }
 
 #viz-resizer {
@@ -157,12 +155,11 @@ body {
 
 /* The 'minimized' state for any panel */
 .panel.minimized {
-  /* Force the width and a tiny height */
   width: 220px !important;
-  height: 34px !important; /* Matches the height of your handle */
+  height: 34px !important;
   min-height: 0 !important;
-  overflow: hidden !important; /* Crucial: cuts off the white void */
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  overflow: hidden !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 /* Hide everything inside the panel except the handle when minimized */
@@ -175,9 +172,7 @@ body {
 .panel.minimized > *:not(.handle) {
   display: none !important;
   opacity: 0;
-  pointer-events: none; /* Prevent clicking hidden buttons */
-  /* We use visibility/opacity instead of display:none during 
-     the animation to keep the layout stable for the transition */
+  pointer-events: none;
 }
 
 .panel > *:not(.handle) {
@@ -199,7 +194,9 @@ body {
   font-weight: bold;
   margin-left: 5px;
 }
-.min-btn:hover { background: #d1d5db; }
+.min-btn:hover {
+  background: #d1d5db;
+}
 
 .panel-content {
   padding: 15px;
@@ -213,10 +210,16 @@ body {
   margin-bottom: 8px;
 }
 
-.feat-name { flex-grow: 1; }
-.feat-symbol { width: 40px; text-align: center; }
+.feat-name {
+  flex-grow: 1;
+}
+.feat-symbol {
+  width: 40px;
+  text-align: center;
+}
 
-.ui-btn, .primary-btn {
+.ui-btn,
+.primary-btn {
   width: 100%;
   padding: 8px;
   cursor: pointer;
@@ -232,21 +235,35 @@ body {
   font-weight: bold;
 }
 
-.hint { font-size: 0.8em; color: #666; margin-bottom: 4px; }
+.hint {
+  font-size: 0.8em;
+  color: #666;
+  margin-bottom: 4px;
+}
 .panel {
   position: fixed;
-  top: 80px; /* Adjust this to match your header height + gap */
+  top: 80px;
   background: white;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   z-index: 10;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
 }
-#constructor-panel { left: 20px; width: 300px; }
-#args-panel        { left: 340px; width: 250px; }
-#viz-panel         { left: 610px; width: 600px; height: 400px; }
+#constructor-panel {
+  left: 20px;
+  width: 300px;
+}
+#args-panel {
+  left: 340px;
+  width: 250px;
+}
+#viz-panel {
+  left: 610px;
+  width: 600px;
+  height: 400px;
+}
 
 /* The Resizer Handle */
 #viz-resizer {
@@ -257,5 +274,257 @@ body {
   bottom: 0;
   right: 0;
   background: linear-gradient(135deg, transparent 50%, #cbd5e1 50%);
-  z-index: 20; /* Ensure it stays above the canvas */
+  z-index: 20;
+}
+/* ── Trace Panel ── */
+.trace-step-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  margin-bottom: 3px;
+}
+
+.trace-current-row {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.trace-unknown-row {
+  background: #fef2f2;
+}
+
+.trace-token-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: monospace;
+  min-width: 50px;
+  text-align: center;
+}
+
+.trace-arrow {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.trace-state-label {
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+#viz-container {
+  background: #ffffff !important;
+}
+/* Viz resizer */
+#viz-resizer {
+  width: 15px;
+  height: 15px;
+  cursor: nwse-resize;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(135deg, transparent 50%, #cbd5e1 50%);
+  z-index: 20;
+}
+
+#tutorial-panel {
+  width: 280px;
+}
+#trace-panel {
+  width: 260px;
+}
+
+#grocery-panel {
+  width: 860px;
+  height: 480px;
+}
+
+.hip-grocery-ui {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  font-weight: 800;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.aisle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.item-card {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.item-card:hover {
+  background:rgba(15,23,42,0.88);;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.item-card:hover > * > *{
+  color: white;
+}
+
+.cart-section {
+  background: #f1f5f9;
+  margin: 0 -15px -15px -15px; /* Bleed to edges */
+  padding: 15px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.basket-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 40px;
+  padding: 10px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.checkout-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 10px;
+  background: #0f172a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.checkout-btn:hover { opacity: 0.9; }
+
+/* The Resizer Handle Styling */
+.resizer-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 15px;
+  height: 15px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, #cbd5e1 50%);
+}
+
+/* Container for the cards */
+/* Tighten the grid: smaller min-width for more columns */
+.aisle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr));
+    gap: 8px;
+    padding: 5px 0;
+}
+
+.hip-card {
+    background: #ffffff;
+    border: 1px solid #eef2f6;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    min-height: 110px; /* Reduced height */
+}
+
+.hip-card:hover {
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.card-image-placeholder {
+    height: 40px; /* Shorter image area */
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px; /* Smaller Emoji */
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.card-info {
+    padding: 6px 8px; /* Tighter padding */
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.item-name {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 0.75rem; /* Smaller text */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-distro {
+    font-size: 0.6rem; /* Tiny secondary text */
+    color: #94a3b8;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto; /* Push to bottom of card */
+}
+
+.item-price {
+    font-family: monospace;
+    font-weight: 700;
+    color: #10b981;
+    font-size: 0.8rem;
+}
+
+.add-plus {
+    width: 18px;
+    height: 18px;
+    background: #3b82f6;
+    color: white;
+    border-radius: 4px; /* Square-ish look */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
 }

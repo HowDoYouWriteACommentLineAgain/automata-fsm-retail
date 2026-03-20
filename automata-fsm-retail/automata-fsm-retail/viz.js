@@ -15,13 +15,9 @@ class MonotonicVisualizer {
     this.stateCoords = new Map();
     this.visibleStateMap = new Map();
 
-    this.showSelfLoops = true;
-
-    // Trace state (new)
     this.traceSteps = [];
     this.traceActive = false;
 
-    // Auto-assign colors to symbols from a palette
     this._colorPalette = [
       "#6366f1",
       "#f97316",
@@ -49,7 +45,6 @@ class MonotonicVisualizer {
     return this._symbolColorMap[sym];
   }
 
-  // Called by the trace panel on every keystroke
   setTrace(traceSteps) {
     this.traceSteps = traceSteps;
     this.traceActive = traceSteps.length > 0;
@@ -98,11 +93,6 @@ class MonotonicVisualizer {
   toggleReachability() {
     this.showOnlyReachable = !this.showOnlyReachable;
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.draw();
-  }
-
-  toggleSelfLoops() {
-    this.showSelfLoops = !this.showSelfLoops;
     this.draw();
   }
 
@@ -172,9 +162,8 @@ class MonotonicVisualizer {
 
     const symbols = Object.keys(this.dfa.S_map);
 
-    // Build trace sets for highlighting
     const traceStateSet = new Set();
-    const traceEdgeSet = new Set(); // "fromState:token:toState"
+    const traceEdgeSet = new Set();
     let currentTraceState = null;
 
     if (this.traceActive && this.traceSteps.length > 0) {
@@ -201,33 +190,9 @@ class MonotonicVisualizer {
       const startPos = this.stateCoords.get(state);
       if (!startPos) continue;
       for (const char of symbols) {
-        // Inside your draw() loop for (const char of symbols)
         const nextState = this.dfa._nextState(state, char);
         const endPos = this.stateCoords.get(nextState);
-
-        // Inside your draw() loop:
-        if (nextState === state && startPos) {
-            // Only draw if the toggle is ON
-            if (this.showSelfLoops) {
-                const charIndex = symbols.indexOf(char);
-                const edgeKey = `${state}:${char}:${nextState}`;
-                const isTraceEdge = traceEdgeSet.has(edgeKey);
-                
-                // (Keep your existing alpha/highlight logic here)
-                if (this.traceActive) {
-                    this.ctx.globalAlpha = isTraceEdge ? 0.95 : 0.04;
-                } else if (this.hoveredState !== null) {
-                    // ONLY highlight if this specific state is the one hovered
-                    // This prevents "neighbor" highlighting from triggering self-loops
-                    this.ctx.globalAlpha = (state === this.hoveredState) ? 0.9 : 0.05;
-                } else {
-                    this.ctx.globalAlpha = 0.4;
-                }            
-
-                this.drawSelfLoop(startPos, this.getSymbolColor(char), charIndex, isTraceEdge ? 2.5 : 1.5);
-              }
-            continue; // Always continue so it doesn't try to draw a regular arrow to itself
-        }
+        if (!endPos || nextState === state) continue;
 
         const edgeKey = `${state}:${char}:${nextState}`;
         const isTraceEdge = traceEdgeSet.has(edgeKey);
@@ -250,14 +215,6 @@ class MonotonicVisualizer {
           isTraceEdge ? 2.5 : 1.5,
         );
       }
-    }
-
-    const startState = this.dfa.Q0;
-    const startPos = this.stateCoords.get(startState);
-
-    if (startPos) {
-        // We draw an arrow coming from the left of the start node
-        this.drawEntryArrow(startPos);
     }
 
     // Draw nodes
@@ -288,7 +245,6 @@ class MonotonicVisualizer {
   drawNode(pos, index, isFinal, isHovered, isCurrent = false) {
     const r = this.nodeRadius;
 
-    // Glow ring for current trace state
     if (isCurrent) {
       this.ctx.beginPath();
       this.ctx.arc(pos.x, pos.y, r + 7, 0, Math.PI * 2);
@@ -321,7 +277,6 @@ class MonotonicVisualizer {
       this.ctx.stroke();
     }
 
-    // Q subscript label (your updated style)
     this.ctx.fillStyle = isCurrent ? "#1d4ed8" : "#1e293b";
     this.ctx.textAlign = "center";
     this.ctx.font = `bold 14px serif`;
@@ -364,62 +319,6 @@ class MonotonicVisualizer {
     this.ctx.fill();
     this.ctx.restore();
   }
-
-drawSelfLoop(pos, color, charIndex, lineWidth = 1.5) {
-  const r = this.nodeRadius;
-  const ctx = this.ctx;
-
-  ctx.save();
-
-  // 1. DYNAMIC ANGLE S
-  // We shift the entire "base" of the loop based on the index
-  // so they don't sit on top of each other.
-  const spacing = 0.3; // Radians between loops
-  const centerA = -Math.PI / 2 + (charIndex - 1) * spacing;
-  const startA = centerA - 0.2;
-  const endA = centerA + spacing;
-
-  // 2. ANCHOR POINTS
-  const startX = pos.x + r * Math.cos(startA);
-  const startY = pos.y + r * Math.sin(startA);
-  
-  // Target is the actual circle, End is where the arrow stops (gap)
-  const gap = 5;
-  const targetX = pos.x + r * Math.cos(endA);
-  const targetY = pos.y + r * Math.sin(endA);
-  const endX = pos.x + (r + gap) * Math.cos(endA);
-  const endY = pos.y + (r + gap) * Math.sin(endA);
-
-  // 3. CIRCULAR CONTROL POINTS
-  // To get a circular look, the "handles" need to be quite long
-  // and perpendicular to the exit/entry angles.
-  const loopSize = 20; 
-  const cp1x = startX + loopSize * Math.cos(startA);
-  const cp1y = startY + loopSize * Math.sin(startA);
-  const cp2x = endX + loopSize * Math.cos(endA);
-  const cp2y = endY + loopSize * Math.sin(endA);
-
-  // ctx.save();
-  ctx.beginPath();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = lineWidth;
-  ctx.moveTo(startX, startY);
-  ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
-  ctx.stroke();
-
-  // 4. ARROWHEAD
-  // Points directly toward the center of the node from the gap
-  const arrowAngle = Math.atan2(targetY - cp2y, targetX - cp2x);
-  ctx.fillStyle = color;
-  ctx.translate(endX, endY);
-  ctx.rotate(arrowAngle);
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(-8, -4);
-  ctx.lineTo(-8, 4);
-  ctx.fill();
-  ctx.restore();
-}
 
   drawAlphabetLegend() {
     const symbols = Object.keys(this.dfa.S_map);
@@ -498,43 +397,4 @@ drawSelfLoop(pos, color, charIndex, lineWidth = 1.5) {
       this.ctx.fillText(`· ${f}`, bx + pad, by + pad + lineH * (2 + i) + 2);
     });
   }
-
-  drawEntryArrow(pos) {
-    const r = this.nodeRadius;
-    const ctx = this.ctx;
-    const arrowLength = 30;
-    const gap = 5;
-
-    // The arrow points from (pos.x - arrowLength - r) to (pos.x - r - gap)
-    const startX = pos.x - r - arrowLength - gap;
-    const startY = pos.y;
-    const endX = pos.x - r - gap;
-    const endY = pos.y;
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.strokeStyle = "#1e293b"; // Matching your node border color
-    ctx.lineWidth = 2;
-    
-    // Draw the straight line segment
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
-
-    // Draw the arrowhead at the end point
-    ctx.fillStyle = "#1e293b";
-    ctx.beginPath();
-    ctx.moveTo(endX, endY);
-    ctx.lineTo(endX - 8, endY - 4);
-    ctx.lineTo(endX - 8, endY + 4);
-    ctx.fill();
-
-    // Optional: Add a small "Start" label above the arrow
-    ctx.fillStyle = "#64748b";
-    ctx.font = "bold 10px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("START", startX + arrowLength / 2, startY - 8);
-
-    ctx.restore();
-}
 }
